@@ -137,7 +137,7 @@ function SplashScreen({profile,onNavigate,photoUrl}){
         <div style={{fontSize:"clamp(52px,10vw,96px)",fontWeight:900,color:"#fff",lineHeight:0.92,letterSpacing:"-2px",textTransform:"uppercase"}}>TRACKER</div>
       </div>
       <nav style={{display:"flex",flexDirection:"column",gap:0}}>
-        {navItems.map((item,i)=>(<button key={item.id} onClick={()=>onNavigate(item.id)} style={{background:"none",border:"none",borderTop:i===0?"1px solid rgba(255,255,255,0.2)":"none",borderBottom:"1px solid rgba(255,255,255,0.2)",padding:"18px 0",textAlign:"left",color:"#fff",fontSize:"clamp(18px,3.5vw,26px)",fontWeight:400,fontFamily:"Georgia,serif",cursor:"pointer",letterSpacing:"0.5px",transition:"color 0.2s,padding-left 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.color="#e63c3c";e.currentTarget.style.paddingLeft="12px";}} onMouseLeave={e=>{e.currentTarget.style.color="#fff";e.currentTarget.style.paddingLeft="0px";}}>{item.label}</button>))}
+        {navItems.map((item,i)=>(<button key={item.id} onClick={()=>onNavigate(item.id)} style={{background:"none",border:"none",borderTop:i===0?"1px solid rgba(255,255,255,0.2)":"none",borderBottom:"1px solid rgba(255,255,255,0.2)",padding:"18px 0",textAlign:"left",color:"#fff",fontSize:"clamp(18px,3.5vw,26px)",fontWeight:400,fontFamily:"Arial,sans-serif",cursor:"pointer",letterSpacing:"0.5px",transition:"color 0.2s,padding-left 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.color="#e63c3c";e.currentTarget.style.paddingLeft="12px";}} onMouseLeave={e=>{e.currentTarget.style.color="#fff";e.currentTarget.style.paddingLeft="0px";}}>{item.label}</button>))}
       </nav>
     </div>
   </div>);
@@ -325,14 +325,16 @@ export default function App(){
   const[screen,setScreen]=useState("splash");
   const[photoUrl,setPhotoUrl]=useState(null);
 
-  useEffect(()=>{(async()=>{
-    try{const r=await window.storage.get("scholartrack:profile");if(r)setProfile(JSON.parse(r.value));}catch(_){}
-    try{const r=await window.storage.get("scholartrack:photo");if(r)setPhotoUrl(r.value);}catch(_){}
-  })();},[]);
-
-  const saveProfile=useCallback(async(data)=>{setProfile(data);setEditing(false);try{await window.storage.set("scholartrack:profile",JSON.stringify(data));}catch(_){}}, []);
-  const savePhoto=useCallback(async(url)=>{setPhotoUrl(url);try{await window.storage.set("scholartrack:photo",url);}catch(_){}}, []);
-
+  useEffect(()=>{
+    const p=localStorage.getItem("scholartrack:profile");
+    if(p)setProfile(JSON.parse(p));
+    const ph=localStorage.getItem("scholartrack:photo");
+    if(ph)setPhotoUrl(ph);
+  },[]);
+  
+  const saveProfile=useCallback((data)=>{setProfile(data);setEditing(false);localStorage.setItem("scholartrack:profile",JSON.stringify(data));}, []);
+  const savePhoto=useCallback((url)=>{setPhotoUrl(url);localStorage.setItem("scholartrack:photo",url);}, []);
+  
   if(!user)return<LoginPage onLogin={(u)=>{setUser(u);setScreen("splash");}}/>;
   if(editing||!profile)return(<div style={{minHeight:"100vh",background:"#000",padding:"32px"}}><div style={{maxWidth:860,margin:"0 auto"}}><ProfileForm profile={profile} onSave={saveProfile} onCancel={profile?()=>setEditing(false):null} photoUrl={photoUrl} onPhotoChange={savePhoto}/></div></div>);
   if(screen==="splash")return<SplashScreen profile={profile} photoUrl={photoUrl} onNavigate={()=>setScreen("dashboard")}/>;
