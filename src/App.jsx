@@ -194,7 +194,7 @@ function LoginPage({onLogin}){
   const handleSubmit=()=>{setLoading(true);setTimeout(()=>{const user=DEMO_USERS.find(u=>u.username===username&&u.password===password);if(user){onLogin(user);}else{setError("Invalid credentials.");setLoading(false);}},600);};
   return(<div style={{minHeight:"100vh",background:"#000",display:"flex",alignItems:"center",justifyContent:"center",padding:20,fontFamily:"'Arial Black',sans-serif"}}>
     <div style={{width:"100%",maxWidth:400}}>
-      <div style={{marginBottom:40}}><div style={{fontSize:48,fontWeight:900,color:"#fff",lineHeight:0.9,textTransform:"uppercase",letterSpacing:"-2px"}}>SCHOLAR<span style={{color:"#e63c3c"}}>TRACK</span></div><div style={{fontSize:13,color:"#555",marginTop:10,fontFamily:"Georgia,serif",fontWeight:400,letterSpacing:"2px",textTransform:"uppercase"}}>Class of 2026</div></div>
+      <div style={{marginBottom:40}}><div style={{fontSize:48,fontWeight:900,color:"#fff",lineHeight:0.9,textTransform:"uppercase",letterSpacing:"-2px"}}>SCHOLAR<span style={{color:"#e63c3c"}}>TRACK</span></div><div style={{fontSize:13,color:"#555",marginTop:10,fontFamily:"Arial,sans-serif",fontWeight:400,letterSpacing:"2px",textTransform:"uppercase"}}>Class of 2026</div></div>
       <div style={{background:"#0d0d0d",borderRadius:12,padding:28,border:"1px solid #1f1f1f"}}>
         {error&&<div style={{background:"rgba(230,60,60,0.1)",border:"1px solid rgba(230,60,60,0.3)",borderRadius:6,padding:"10px 14px",marginBottom:18,color:"#e63c3c",fontSize:13}}>{error}</div>}
         <div style={{marginBottom:16}}><label style={{display:"block",fontSize:11,fontWeight:700,color:"#555",marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>Username</label><input value={username} onChange={e=>{setUsername(e.target.value);setError("");}} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} placeholder="Enter username" style={{width:"100%",padding:"12px 14px",borderRadius:8,border:"1px solid #222",background:"#111",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box"}} onFocus={e=>e.target.style.borderColor="#e63c3c"} onBlur={e=>e.target.style.borderColor="#222"}/></div>
@@ -215,11 +215,11 @@ function ProfileForm({profile,onSave,onCancel,photoUrl,onPhotoChange}){
   const handleRejectedChange=(vals)=>{const na=form.acceptedSchools.filter(s=>!vals.includes(s));setForm(f=>({...f,rejectedSchools:vals,acceptedSchools:na}));};
   const honorOptions=["AP Scholar","AP Scholar with Honor","AP Scholar with Distinction","AP Capstone Diploma","National Honor Society","National Merit Semifinalist","National Merit Finalist","Valedictorian","Salutatorian","Boys/Girls State","Eagle Scout / Gold Award"];
   const handleSave=()=>{
-  if(!form.firstName||!form.lastName||!form.email||!form.gpaUnweighted||!form.sat||form.appliedSchools.length===0){
-    alert("Please fill in: First Name, Last Name, Email, GPA, SAT, and at least one school.");return;
-  }
-  onSave(form);setSaved(true);setTimeout(()=>setSaved(false),2500);
-};
+    if(!form.firstName||!form.lastName||!form.email||!form.gpaUnweighted||!form.sat||form.appliedSchools.length===0){
+      alert("Please fill in: First Name, Last Name, Email, GPA, SAT, and at least one school.");return;
+    }
+    onSave(form);setSaved(true);setTimeout(()=>setSaved(false),2500);
+  };
   const handlePhoto=(e)=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=(ev)=>onPhotoChange(ev.target.result);reader.readAsDataURL(file);};
   const inp={width:"100%",padding:"10px 13px",borderRadius:7,border:"1px solid #2a2a2a",fontSize:13,color:"#fff",outline:"none",boxSizing:"border-box",background:"#111"};
   const lbl={display:"block",fontSize:11,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:0.8};
@@ -245,11 +245,11 @@ function ProfileForm({profile,onSave,onCancel,photoUrl,onPhotoChange}){
         </div>
       </div>
       <h3 style={sec}>👤 Personal Info</h3>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:28}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:14,marginBottom:28}}>
         {[["firstName","First Name","e.g. Jacob","text"],["lastName","Last Name","e.g. Smith","text"],["email","Email","student@email.com","email"],["phone","Phone","(555) 000-0000","tel"]].map(([key,label,ph,type])=>(<div key={key}><label style={lbl}>{label}</label><input style={inp} type={type} value={form[key]} onChange={e=>set(key,e.target.value)} placeholder={ph} onFocus={e=>e.target.style.borderColor="#e63c3c"} onBlur={e=>e.target.style.borderColor="#2a2a2a"}/></div>))}
       </div>
       <h3 style={sec}>📊 Academic Stats</h3>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:14,marginBottom:28}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:14,marginBottom:28}}>
         {[["gpaUnweighted","GPA (UW)","0.0–4.0"],["gpaWeighted","GPA (W)","0.0–5.0"],["sat","SAT","400–1600"],["volunteerHours","Vol. Hours","e.g. 200"]].map(([key,label,ph])=>(<div key={key}><label style={lbl}>{label}</label><input style={inp} value={form[key]} onChange={e=>set(key,e.target.value)} placeholder={ph} onFocus={e=>e.target.style.borderColor="#e63c3c"} onBlur={e=>e.target.style.borderColor="#2a2a2a"}/></div>))}
       </div>
       <h3 style={sec}>🎖️ Honors & Awards</h3>
@@ -272,55 +272,125 @@ function ProfileForm({profile,onSave,onCancel,photoUrl,onPhotoChange}){
   </div>);
 }
 
+// Hamburger icon component
+function HamburgerIcon({open}){
+  return(
+    <div style={{width:24,height:18,display:"flex",flexDirection:"column",justifyContent:"space-between",cursor:"pointer"}}>
+      <span style={{display:"block",height:2,background:"#fff",borderRadius:2,transition:"all 0.3s",transform:open?"rotate(45deg) translate(5px,8px)":"none"}}/>
+      <span style={{display:"block",height:2,background:"#fff",borderRadius:2,transition:"all 0.3s",opacity:open?0:1}}/>
+      <span style={{display:"block",height:2,background:"#fff",borderRadius:2,transition:"all 0.3s",transform:open?"rotate(-45deg) translate(5px,-8px)":"none"}}/>
+    </div>
+  );
+}
+
 function Dashboard({user,profile,onEditProfile,onHome,photoUrl}){
-  const[tab,setTab]=useState("overview");const[schoolFilter,setSchoolFilter]=useState(null);const[indepCat,setIndepCat]=useState("All");const[showPassed,setShowPassed]=useState(false);
-  const appliedSchools=profile?.appliedSchools||[];const acceptedSchools=profile?.acceptedSchools||[];const rejectedSchools=profile?.rejectedSchools||[];
+  const[tab,setTab]=useState("overview");
+  const[schoolFilter,setSchoolFilter]=useState(null);
+  const[indepCat,setIndepCat]=useState("All");
+  const[showPassed,setShowPassed]=useState(false);
+  const[menuOpen,setMenuOpen]=useState(false);
+
+  const appliedSchools=profile?.appliedSchools||[];
+  const acceptedSchools=profile?.acceptedSchools||[];
+  const rejectedSchools=profile?.rejectedSchools||[];
   const pendingSchools=appliedSchools.filter(s=>!acceptedSchools.includes(s)&&!rejectedSchools.includes(s));
   const totalSchoolAwards=acceptedSchools.filter(s=>SCHOOL_SCHOLARSHIPS[s]).reduce((sum,s)=>sum+(SCHOOL_SCHOLARSHIPS[s]?.length||0),0);
   const indepCats=["All",...Array.from(new Set(INDEPENDENT_SCHOLARSHIPS.map(s=>s.category)))];
   const indepFiltered=INDEPENDENT_SCHOLARSHIPS.filter(s=>indepCat==="All"||s.category===indepCat).filter(s=>showPassed||daysUntil(s.deadline)>=0);
   const tabs=[{id:"overview",label:"Overview"},{id:"applications",label:"Applications"},{id:"school-awards",label:"Awards"},{id:"independent",label:"Independent"}];
   const fn=profile?.firstName||"";
-  return(<div style={{minHeight:"100vh",background:"#000",color:"#fff",fontFamily:"Arial,sans-serif"}}>
-    <div style={{background:"#000",borderBottom:"1px solid #1a1a1a",padding:"0 28px",position:"sticky",top:0,zIndex:100}}>
-      <div style={{maxWidth:1100,margin:"0 auto",display:"flex",alignItems:"center",gap:0}}>
-        <button onClick={onHome} style={{background:"none",border:"none",color:"#fff",fontSize:18,fontWeight:900,fontFamily:"'Arial Black',sans-serif",cursor:"pointer",padding:"16px 0",marginRight:32,letterSpacing:"-1px",textTransform:"uppercase"}}>{fn?`${fn.toUpperCase()}'S `:<span/>}<span style={{color:"#e63c3c"}}>ST</span></button>
-        <div style={{display:"flex",gap:0,flex:1}}>{tabs.map(t=>(<button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"18px 20px",background:"none",border:"none",borderBottom:`2px solid ${tab===t.id?"#e63c3c":"transparent"}`,color:tab===t.id?"#fff":"#555",fontSize:13,fontWeight:700,cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.5px",transition:"all 0.15s"}}>{t.label}</button>))}</div>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          {photoUrl&&<img src={photoUrl} alt="" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",filter:"grayscale(100%)",border:"2px solid #333"}}/>}
-          <button onClick={onEditProfile} style={{background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:6,color:"#aaa",padding:"7px 14px",cursor:"pointer",fontSize:12,textTransform:"uppercase",letterSpacing:"0.5px"}}>Edit Profile</button>
+
+  const handleTabChange=(id)=>{setTab(id);setMenuOpen(false);};
+  const handleEditProfile=()=>{setMenuOpen(false);onEditProfile();};
+  const handleHome=()=>{setMenuOpen(false);onHome();};
+
+  return(
+    <div style={{minHeight:"100vh",background:"#000",color:"#fff",fontFamily:"Arial,sans-serif"}}>
+      {/* Sticky Header */}
+      <div style={{background:"#000",borderBottom:"1px solid #1a1a1a",padding:"0 16px",position:"sticky",top:0,zIndex:100}}>
+        <div style={{maxWidth:1100,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:56}}>
+          {/* Logo */}
+          <button onClick={handleHome} style={{background:"none",border:"none",color:"#fff",fontSize:16,fontWeight:900,fontFamily:"'Arial Black',sans-serif",cursor:"pointer",padding:0,letterSpacing:"-1px",textTransform:"uppercase",flexShrink:0}}>
+            {fn?`${fn.toUpperCase()}'S `:<span/>}<span style={{color:"#e63c3c"}}>ST</span>
+          </button>
+
+          {/* Desktop nav — hidden on mobile */}
+          <div style={{display:"flex",gap:0,flex:1,marginLeft:24,overflow:"hidden"}} className="desktop-nav">
+            {tabs.map(t=>(
+              <button key={t.id} onClick={()=>handleTabChange(t.id)} style={{padding:"18px 16px",background:"none",border:"none",borderBottom:`2px solid ${tab===t.id?"#e63c3c":"transparent"}`,color:tab===t.id?"#fff":"#555",fontSize:12,fontWeight:700,cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.5px",transition:"all 0.15s",whiteSpace:"nowrap"}}>{t.label}</button>
+            ))}
+          </div>
+
+          {/* Right side: photo + hamburger */}
+          <div style={{display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
+            {photoUrl&&<img src={photoUrl} alt="" style={{width:30,height:30,borderRadius:"50%",objectFit:"cover",filter:"grayscale(100%)",border:"2px solid #333"}}/>}
+            <button onClick={()=>setMenuOpen(!menuOpen)} style={{background:"none",border:"none",padding:"4px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <HamburgerIcon open={menuOpen}/>
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Dropdown Menu */}
+      {menuOpen&&(
+        <div style={{position:"fixed",top:56,left:0,right:0,bottom:0,zIndex:99}} onClick={()=>setMenuOpen(false)}>
+          <div style={{position:"absolute",top:0,right:0,width:"100%",maxWidth:300,background:"#0d0d0d",border:"1px solid #1f1f1f",borderTop:"none",boxShadow:"0 20px 60px rgba(0,0,0,0.9)"}} onClick={e=>e.stopPropagation()}>
+            {/* Nav items */}
+            <div style={{padding:"8px 0",borderBottom:"1px solid #1a1a1a"}}>
+              {tabs.map(t=>(
+                <button key={t.id} onClick={()=>handleTabChange(t.id)} style={{display:"block",width:"100%",padding:"14px 20px",background:tab===t.id?"rgba(230,60,60,0.08)":"none",border:"none",borderLeft:`3px solid ${tab===t.id?"#e63c3c":"transparent"}`,color:tab===t.id?"#fff":"#888",fontSize:14,fontWeight:700,cursor:"pointer",textAlign:"left",textTransform:"uppercase",letterSpacing:"0.5px"}}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            {/* Edit Profile + Home */}
+            <div style={{padding:"8px 0"}}>
+              <button onClick={handleEditProfile} style={{display:"block",width:"100%",padding:"14px 20px",background:"none",border:"none",borderLeft:"3px solid transparent",color:"#888",fontSize:14,fontWeight:700,cursor:"pointer",textAlign:"left",textTransform:"uppercase",letterSpacing:"0.5px"}}>
+                ✏️ Edit Profile
+              </button>
+              <button onClick={handleHome} style={{display:"block",width:"100%",padding:"14px 20px",background:"none",border:"none",borderLeft:"3px solid transparent",color:"#888",fontSize:14,fontWeight:700,cursor:"pointer",textAlign:"left",textTransform:"uppercase",letterSpacing:"0.5px"}}>
+                🏠 Home
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div style={{maxWidth:1100,margin:"0 auto",padding:"24px 16px"}}>
+        {tab==="overview"&&(<div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:20}}>
+            {[{label:"Applied",value:appliedSchools.length,color:"#fff"},{label:"Accepted",value:acceptedSchools.length,color:"#4ade80"},{label:"School Awards",value:totalSchoolAwards,color:"#e63c3c"},{label:"Open Scholarships",value:INDEPENDENT_SCHOLARSHIPS.filter(s=>daysUntil(s.deadline)>=0).length,color:"#fbbf24"}].map(s=>(<div key={s.label} style={{background:"#0d0d0d",border:"1px solid #1a1a1a",borderRadius:10,padding:"16px 14px"}}><div style={{fontSize:32,fontWeight:900,color:s.color,lineHeight:1,fontFamily:"'Arial Black',sans-serif"}}>{s.value}</div><div style={{fontSize:10,color:"#555",marginTop:4,textTransform:"uppercase",letterSpacing:"1px"}}>{s.label}</div></div>))}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr",gap:12,marginBottom:20}}>
+            <div style={{background:"#0d0d0d",borderRadius:10,padding:"16px",border:"1px solid #1a1a1a"}}><div style={{fontSize:11,color:"#e63c3c",fontWeight:700,textTransform:"uppercase",letterSpacing:"2px",marginBottom:12}}>Academic</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>{[{label:"GPA (UW)",val:profile?.gpaUnweighted||"—",sub:"/4.0",bar:(parseFloat(profile?.gpaUnweighted)||0)/4,color:"#e63c3c"},{label:"GPA (W)",val:profile?.gpaWeighted||"—",sub:"/5.0",bar:(parseFloat(profile?.gpaWeighted)||0)/5,color:"#e63c3c"},{label:"SAT",val:profile?.sat||"—",sub:"/1600",bar:(parseInt(profile?.sat)||0)/1600,color:"#fff"},{label:"Vol. Hrs",val:profile?.volunteerHours?`${profile.volunteerHours}+`:"—",sub:"hrs",bar:Math.min((parseInt(profile?.volunteerHours)||0)/300,1),color:"#4ade80"}].map(item=>(<div key={item.label}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:11,color:"#555"}}>{item.label}</span><span style={{fontSize:13,fontWeight:800,color:item.color}}>{item.val}<span style={{fontSize:9,color:"#333",fontWeight:400}}>{item.sub}</span></span></div><div style={{height:2,background:"#1a1a1a",borderRadius:2}}><div style={{height:"100%",width:`${item.bar*100}%`,background:item.color,borderRadius:2}}/></div></div>))}</div></div>
+            <div style={{background:"#0d0d0d",borderRadius:10,padding:"16px",border:"1px solid #1a1a1a"}}><div style={{fontSize:11,color:"#e63c3c",fontWeight:700,textTransform:"uppercase",letterSpacing:"2px",marginBottom:12}}>Honors</div>{(profile?.honors||[]).length===0?<p style={{fontSize:12,color:"#444",margin:0}}>No honors added yet.</p>:<div style={{display:"flex",flexWrap:"wrap",gap:6}}>{(profile?.honors||[]).map(h=>(<span key={h} style={{fontSize:11,padding:"4px 10px",borderRadius:20,background:"rgba(230,60,60,0.1)",color:"#e63c3c",border:"1px solid rgba(230,60,60,0.2)"}}>{h}</span>))}</div>}</div>
+            <div style={{background:"#0d0d0d",borderRadius:10,padding:"16px",border:"1px solid #1a1a1a"}}><div style={{fontSize:11,color:"#e63c3c",fontWeight:700,textTransform:"uppercase",letterSpacing:"2px",marginBottom:12}}>Activities</div><p style={{fontSize:12,color:profile?.extracurriculars?"#aaa":"#444",margin:0,lineHeight:1.7}}>{profile?.extracurriculars||"No activities added yet."}</p></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr",gap:10}}>
+            {[{id:"applications",label:"APPLICATIONS",sub:`${appliedSchools.length} schools · ${acceptedSchools.length} accepted`},{id:"school-awards",label:"SCHOOL AWARDS",sub:`${totalSchoolAwards} scholarships available`},{id:"independent",label:"INDEPENDENT",sub:`${INDEPENDENT_SCHOLARSHIPS.filter(s=>daysUntil(s.deadline)>=0).length} open scholarships`}].map(c=>(<button key={c.id} onClick={()=>setTab(c.id)} style={{background:"#0d0d0d",border:"1px solid #1a1a1a",borderRadius:10,padding:"18px",textAlign:"left",cursor:"pointer",transition:"border-color 0.15s",display:"flex",alignItems:"center",justifyContent:"space-between"}} onMouseEnter={e=>e.currentTarget.style.borderColor="#e63c3c"} onMouseLeave={e=>e.currentTarget.style.borderColor="#1a1a1a"}><div><div style={{fontSize:13,fontWeight:900,color:"#fff",marginBottom:4,textTransform:"uppercase",letterSpacing:"1px"}}>{c.label}</div><div style={{fontSize:12,color:"#555"}}>{c.sub}</div></div><div style={{fontSize:14,color:"#e63c3c",fontWeight:700}}>→</div></button>))}
+          </div>
+        </div>)}
+
+        {tab==="applications"&&(<div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>{[{label:"Accepted",count:acceptedSchools.length,color:"#4ade80"},{label:"Pending",count:pendingSchools.length,color:"#fbbf24"},{label:"Rejected",count:rejectedSchools.length,color:"#f87171"}].map(s=>(<div key={s.label} style={{background:"#0d0d0d",border:"1px solid #1a1a1a",borderRadius:10,padding:"14px 12px",display:"flex",flexDirection:"column",gap:4}}><div style={{fontSize:28,fontWeight:900,color:s.color,fontFamily:"'Arial Black',sans-serif"}}>{s.count}</div><div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:"1px"}}>{s.label}</div></div>))}</div>
+          {appliedSchools.length===0?<div style={{textAlign:"center",padding:60,color:"#444"}}><div style={{fontSize:32,marginBottom:12}}>🏫</div><p>No schools added yet.</p></div>:<div style={{display:"flex",flexDirection:"column",gap:8}}>{[...acceptedSchools.map(s=>({name:s,status:"accepted"})),...pendingSchools.map(s=>({name:s,status:"waiting"})),...rejectedSchools.map(s=>({name:s,status:"rejected"}))].map(school=>{const cfg=STATUS_CONFIG[school.status];const hasS=school.status==="accepted"&&SCHOOL_SCHOLARSHIPS[school.name];return(<div key={school.name} style={{background:"#0d0d0d",borderRadius:10,border:"1px solid #1a1a1a",padding:"12px 14px",display:"flex",alignItems:"center",gap:12,cursor:hasS?"pointer":"default",transition:"border-color 0.15s"}} onMouseEnter={e=>{if(hasS)e.currentTarget.style.borderColor="#e63c3c";}} onMouseLeave={e=>e.currentTarget.style.borderColor="#1a1a1a"} onClick={()=>{if(hasS){setSchoolFilter(school.name);setTab("school-awards");}}}><StatusDot status={school.status}/><div style={{flex:1,fontSize:13,fontWeight:700,color:"#fff",minWidth:0}}>{school.name}</div><div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4,flexShrink:0}}><span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:cfg.bg,color:cfg.color,fontWeight:700}}>{cfg.label}</span>{hasS&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"rgba(230,60,60,0.1)",color:"#e63c3c"}}>{SCHOOL_SCHOLARSHIPS[school.name].length} awards →</span>}</div></div>);})}</div>}
+        </div>)}
+
+        {tab==="school-awards"&&(<div>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,flexWrap:"wrap"}}><h2 style={{margin:0,fontSize:16,fontWeight:900,color:"#fff",textTransform:"uppercase",letterSpacing:"-0.5px"}}>{schoolFilter||"All School Awards"}</h2>{schoolFilter&&<button onClick={()=>setSchoolFilter(null)} style={{fontSize:11,padding:"3px 10px",borderRadius:20,border:"1px solid #333",background:"transparent",color:"#888",cursor:"pointer"}}>Show All ×</button>}</div>
+          {acceptedSchools.length===0?<div style={{textAlign:"center",padding:60,color:"#444"}}><p>No accepted schools yet.</p></div>:<><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}><button onClick={()=>setSchoolFilter(null)} style={{padding:"4px 12px",borderRadius:20,border:"1px solid",fontSize:11,fontWeight:700,cursor:"pointer",borderColor:!schoolFilter?"#e63c3c":"#2a2a2a",background:!schoolFilter?"rgba(230,60,60,0.1)":"transparent",color:!schoolFilter?"#e63c3c":"#666"}}>All</button>{acceptedSchools.map(s=>(<button key={s} onClick={()=>setSchoolFilter(s)} style={{padding:"4px 12px",borderRadius:20,border:"1px solid",fontSize:11,fontWeight:700,cursor:"pointer",borderColor:schoolFilter===s?"#e63c3c":"#2a2a2a",background:schoolFilter===s?"rgba(230,60,60,0.1)":"transparent",color:schoolFilter===s?"#e63c3c":"#666"}}>{s}</button>))}</div>{(schoolFilter?[schoolFilter]:acceptedSchools).map(name=>(<div key={name} style={{marginBottom:24}}><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><div style={{width:6,height:6,borderRadius:"50%",background:"#e63c3c",flexShrink:0}}/><h3 style={{margin:0,fontSize:13,fontWeight:900,color:"#fff",textTransform:"uppercase",letterSpacing:"0.5px"}}>{name}</h3><span style={{fontSize:11,color:"#555",flexShrink:0}}>{SCHOOL_SCHOLARSHIPS[name]?.length||0} awards</span></div>{!SCHOOL_SCHOLARSHIPS[name]?<div style={{padding:16,background:"#0d0d0d",borderRadius:8,border:"1px dashed #1f1f1f",textAlign:"center",color:"#444",fontSize:12}}>Check {name}'s financial aid portal directly.</div>:<div style={{display:"flex",flexDirection:"column",gap:8}}>{SCHOOL_SCHOLARSHIPS[name].map((s,i)=><ScholarshipCard key={i} s={s}/>)}</div>}</div>))}</>}
+        </div>)}
+
+        {tab==="independent"&&(<div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10,marginBottom:12}}><h2 style={{margin:0,fontSize:16,fontWeight:900,color:"#fff",textTransform:"uppercase",letterSpacing:"-0.5px"}}>Independent</h2><button onClick={()=>setShowPassed(!showPassed)} style={{padding:"4px 12px",borderRadius:20,border:"1px solid",fontSize:11,fontWeight:700,cursor:"pointer",borderColor:showPassed?"#f87171":"#2a2a2a",background:showPassed?"rgba(248,113,113,0.1)":"transparent",color:showPassed?"#f87171":"#666"}}>{showPassed?"Hide Passed":"Show All"}</button></div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>{indepCats.map(c=>(<button key={c} onClick={()=>setIndepCat(c)} style={{padding:"4px 12px",borderRadius:20,border:"1px solid",fontSize:11,fontWeight:700,cursor:"pointer",borderColor:indepCat===c?"#e63c3c":"#2a2a2a",background:indepCat===c?"rgba(230,60,60,0.1)":"transparent",color:indepCat===c?"#e63c3c":"#666"}}>{c}</button>))}</div>
+          <div style={{marginBottom:12,padding:"10px 14px",background:"rgba(230,60,60,0.05)",borderRadius:8,border:"1px solid rgba(230,60,60,0.15)"}}><p style={{margin:0,fontSize:12,color:"#888"}}>🎯 <strong style={{color:"#e63c3c"}}>{indepFiltered.length} scholarships</strong> matched · ⭐ Strong Match = highest fit</p></div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...indepFiltered].sort((a,b)=>{const ap=daysUntil(a.deadline)<0,bp=daysUntil(b.deadline)<0;if(ap&&!bp)return 1;if(!ap&&bp)return -1;if(a.match==="high"&&b.match!=="high")return -1;if(b.match==="high"&&a.match!=="high")return 1;return new Date(a.deadline)-new Date(b.deadline);}).map((s,i)=><ScholarshipCard key={i} s={s}/>)}</div>
+        </div>)}
+      </div>
     </div>
-    <div style={{maxWidth:1100,margin:"0 auto",padding:"32px 28px"}}>
-      {tab==="overview"&&(<div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:28}}>
-          {[{label:"Applied",value:appliedSchools.length,color:"#fff"},{label:"Accepted",value:acceptedSchools.length,color:"#4ade80"},{label:"School Awards",value:totalSchoolAwards,color:"#e63c3c"},{label:"Open Scholarships",value:INDEPENDENT_SCHOLARSHIPS.filter(s=>daysUntil(s.deadline)>=0).length,color:"#fbbf24"}].map(s=>(<div key={s.label} style={{background:"#0d0d0d",border:"1px solid #1a1a1a",borderRadius:10,padding:"20px 18px"}}><div style={{fontSize:36,fontWeight:900,color:s.color,lineHeight:1,fontFamily:"'Arial Black',sans-serif"}}>{s.value}</div><div style={{fontSize:11,color:"#555",marginTop:4,textTransform:"uppercase",letterSpacing:"1px"}}>{s.label}</div></div>))}
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16,marginBottom:28}}>
-          <div style={{background:"#0d0d0d",borderRadius:10,padding:"20px",border:"1px solid #1a1a1a"}}><div style={{fontSize:11,color:"#e63c3c",fontWeight:700,textTransform:"uppercase",letterSpacing:"2px",marginBottom:14}}>Academic</div>{[{label:"GPA (UW)",val:profile?.gpaUnweighted||"—",sub:"/4.0",bar:(parseFloat(profile?.gpaUnweighted)||0)/4,color:"#e63c3c"},{label:"GPA (W)",val:profile?.gpaWeighted||"—",sub:"/5.0",bar:(parseFloat(profile?.gpaWeighted)||0)/5,color:"#e63c3c"},{label:"SAT",val:profile?.sat||"—",sub:"/1600",bar:(parseInt(profile?.sat)||0)/1600,color:"#fff"},{label:"Vol. Hrs",val:profile?.volunteerHours?`${profile.volunteerHours}+`:"—",sub:"hrs",bar:Math.min((parseInt(profile?.volunteerHours)||0)/300,1),color:"#4ade80"}].map(item=>(<div key={item.label} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:11,color:"#555"}}>{item.label}</span><span style={{fontSize:13,fontWeight:800,color:item.color}}>{item.val} <span style={{fontSize:9,color:"#333",fontWeight:400}}>{item.sub}</span></span></div><div style={{height:2,background:"#1a1a1a",borderRadius:2}}><div style={{height:"100%",width:`${item.bar*100}%`,background:item.color,borderRadius:2}}/></div></div>))}</div>
-          <div style={{background:"#0d0d0d",borderRadius:10,padding:"20px",border:"1px solid #1a1a1a"}}><div style={{fontSize:11,color:"#e63c3c",fontWeight:700,textTransform:"uppercase",letterSpacing:"2px",marginBottom:14}}>Honors</div>{(profile?.honors||[]).length===0?<p style={{fontSize:12,color:"#444",margin:0}}>No honors added yet.</p>:<div style={{display:"flex",flexWrap:"wrap",gap:6}}>{(profile?.honors||[]).map(h=>(<span key={h} style={{fontSize:11,padding:"4px 10px",borderRadius:20,background:"rgba(230,60,60,0.1)",color:"#e63c3c",border:"1px solid rgba(230,60,60,0.2)"}}>{h}</span>))}</div>}</div>
-          <div style={{background:"#0d0d0d",borderRadius:10,padding:"20px",border:"1px solid #1a1a1a"}}><div style={{fontSize:11,color:"#e63c3c",fontWeight:700,textTransform:"uppercase",letterSpacing:"2px",marginBottom:14}}>Activities</div><p style={{fontSize:12,color:profile?.extracurriculars?"#aaa":"#444",margin:0,lineHeight:1.7}}>{profile?.extracurriculars||"No activities added yet."}</p></div>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
-          {[{id:"applications",label:"APPLICATIONS",sub:`${appliedSchools.length} schools · ${acceptedSchools.length} accepted`},{id:"school-awards",label:"SCHOOL AWARDS",sub:`${totalSchoolAwards} scholarships available`},{id:"independent",label:"INDEPENDENT",sub:`${INDEPENDENT_SCHOLARSHIPS.filter(s=>daysUntil(s.deadline)>=0).length} open scholarships`}].map(c=>(<button key={c.id} onClick={()=>setTab(c.id)} style={{background:"#0d0d0d",border:"1px solid #1a1a1a",borderRadius:10,padding:"22px",textAlign:"left",cursor:"pointer",transition:"border-color 0.15s"}} onMouseEnter={e=>e.currentTarget.style.borderColor="#e63c3c"} onMouseLeave={e=>e.currentTarget.style.borderColor="#1a1a1a"}><div style={{fontSize:13,fontWeight:900,color:"#fff",marginBottom:6,textTransform:"uppercase",letterSpacing:"1px"}}>{c.label}</div><div style={{fontSize:12,color:"#555"}}>{c.sub}</div><div style={{marginTop:12,fontSize:12,color:"#e63c3c",fontWeight:700}}>View →</div></button>))}
-        </div>
-      </div>)}
-      {tab==="applications"&&(<div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:24}}>{[{label:"Accepted",count:acceptedSchools.length,color:"#4ade80"},{label:"Pending",count:pendingSchools.length,color:"#fbbf24"},{label:"Rejected",count:rejectedSchools.length,color:"#f87171"}].map(s=>(<div key={s.label} style={{background:"#0d0d0d",border:"1px solid #1a1a1a",borderRadius:10,padding:"18px 20px",display:"flex",alignItems:"center",gap:14}}><div style={{fontSize:32,fontWeight:900,color:s.color,fontFamily:"'Arial Black',sans-serif"}}>{s.count}</div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:"1px"}}>{s.label}</div></div>))}</div>
-        {appliedSchools.length===0?<div style={{textAlign:"center",padding:60,color:"#444"}}><div style={{fontSize:32,marginBottom:12}}>🏫</div><p>No schools added yet.</p></div>:<div style={{display:"flex",flexDirection:"column",gap:8}}>{[...acceptedSchools.map(s=>({name:s,status:"accepted"})),...pendingSchools.map(s=>({name:s,status:"waiting"})),...rejectedSchools.map(s=>({name:s,status:"rejected"}))].map(school=>{const cfg=STATUS_CONFIG[school.status];const hasS=school.status==="accepted"&&SCHOOL_SCHOLARSHIPS[school.name];return(<div key={school.name} style={{background:"#0d0d0d",borderRadius:10,border:"1px solid #1a1a1a",padding:"14px 18px",display:"flex",alignItems:"center",gap:14,cursor:hasS?"pointer":"default",transition:"border-color 0.15s"}} onMouseEnter={e=>{if(hasS)e.currentTarget.style.borderColor="#e63c3c";}} onMouseLeave={e=>e.currentTarget.style.borderColor="#1a1a1a"} onClick={()=>{if(hasS){setSchoolFilter(school.name);setTab("school-awards");}}}><StatusDot status={school.status}/><div style={{flex:1,fontSize:14,fontWeight:700,color:"#fff"}}>{school.name}</div><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:11,padding:"3px 12px",borderRadius:20,background:cfg.bg,color:cfg.color,fontWeight:700}}>{cfg.label}</span>{hasS&&<span style={{fontSize:11,padding:"3px 12px",borderRadius:20,background:"rgba(230,60,60,0.1)",color:"#e63c3c"}}>{SCHOOL_SCHOLARSHIPS[school.name].length} awards →</span>}</div></div>);})}</div>}
-      </div>)}
-      {tab==="school-awards"&&(<div>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18,flexWrap:"wrap"}}><h2 style={{margin:0,fontSize:18,fontWeight:900,color:"#fff",textTransform:"uppercase",letterSpacing:"-0.5px"}}>{schoolFilter||"All School Awards"}</h2>{schoolFilter&&<button onClick={()=>setSchoolFilter(null)} style={{fontSize:11,padding:"3px 10px",borderRadius:20,border:"1px solid #333",background:"transparent",color:"#888",cursor:"pointer"}}>Show All ×</button>}</div>
-        {acceptedSchools.length===0?<div style={{textAlign:"center",padding:60,color:"#444"}}><p>No accepted schools yet.</p></div>:<><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:18}}><button onClick={()=>setSchoolFilter(null)} style={{padding:"5px 14px",borderRadius:20,border:"1px solid",fontSize:11,fontWeight:700,cursor:"pointer",borderColor:!schoolFilter?"#e63c3c":"#2a2a2a",background:!schoolFilter?"rgba(230,60,60,0.1)":"transparent",color:!schoolFilter?"#e63c3c":"#666"}}>All</button>{acceptedSchools.map(s=>(<button key={s} onClick={()=>setSchoolFilter(s)} style={{padding:"5px 14px",borderRadius:20,border:"1px solid",fontSize:11,fontWeight:700,cursor:"pointer",borderColor:schoolFilter===s?"#e63c3c":"#2a2a2a",background:schoolFilter===s?"rgba(230,60,60,0.1)":"transparent",color:schoolFilter===s?"#e63c3c":"#666"}}>{s}</button>))}</div>{(schoolFilter?[schoolFilter]:acceptedSchools).map(name=>(<div key={name} style={{marginBottom:28}}><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><div style={{width:6,height:6,borderRadius:"50%",background:"#e63c3c"}}/><h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#fff",textTransform:"uppercase",letterSpacing:"0.5px"}}>{name}</h3><span style={{fontSize:11,color:"#555"}}>{SCHOOL_SCHOLARSHIPS[name]?.length||0} awards</span></div>{!SCHOOL_SCHOLARSHIPS[name]?<div style={{padding:16,background:"#0d0d0d",borderRadius:8,border:"1px dashed #1f1f1f",textAlign:"center",color:"#444",fontSize:12}}>Check {name}'s financial aid portal directly.</div>:<div style={{display:"flex",flexDirection:"column",gap:8}}>{SCHOOL_SCHOLARSHIPS[name].map((s,i)=><ScholarshipCard key={i} s={s}/>)}</div>}</div>))}</>}
-      </div>)}
-      {tab==="independent"&&(<div>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10,marginBottom:14}}><h2 style={{margin:0,fontSize:18,fontWeight:900,color:"#fff",textTransform:"uppercase",letterSpacing:"-0.5px"}}>Independent Scholarships</h2><div style={{display:"flex",gap:6,flexWrap:"wrap"}}><button onClick={()=>setShowPassed(!showPassed)} style={{padding:"5px 13px",borderRadius:20,border:"1px solid",fontSize:11,fontWeight:700,cursor:"pointer",borderColor:showPassed?"#f87171":"#2a2a2a",background:showPassed?"rgba(248,113,113,0.1)":"transparent",color:showPassed?"#f87171":"#666"}}>{showPassed?"Hide Passed":"Show All"}</button>{indepCats.map(c=>(<button key={c} onClick={()=>setIndepCat(c)} style={{padding:"5px 13px",borderRadius:20,border:"1px solid",fontSize:11,fontWeight:700,cursor:"pointer",borderColor:indepCat===c?"#e63c3c":"#2a2a2a",background:indepCat===c?"rgba(230,60,60,0.1)":"transparent",color:indepCat===c?"#e63c3c":"#666"}}>{c}</button>))}</div></div>
-        <div style={{marginBottom:14,padding:"10px 14px",background:"rgba(230,60,60,0.05)",borderRadius:8,border:"1px solid rgba(230,60,60,0.15)"}}><p style={{margin:0,fontSize:12,color:"#888"}}>🎯 <strong style={{color:"#e63c3c"}}>{indepFiltered.length} scholarships</strong> matched · ⭐ Strong Match = highest fit · sorted by deadline</p></div>
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...indepFiltered].sort((a,b)=>{const ap=daysUntil(a.deadline)<0,bp=daysUntil(b.deadline)<0;if(ap&&!bp)return 1;if(!ap&&bp)return -1;if(a.match==="high"&&b.match!=="high")return -1;if(b.match==="high"&&a.match!=="high")return 1;return new Date(a.deadline)-new Date(b.deadline);}).map((s,i)=><ScholarshipCard key={i} s={s}/>)}</div>
-      </div>)}
-    </div>
-  </div>);
+  );
 }
 
 export default function App(){
@@ -329,16 +399,19 @@ export default function App(){
   const[editing,setEditing]=useState(false);
   const[screen,setScreen]=useState("splash");
   const[photoUrl,setPhotoUrl]=useState(null);
+
   useEffect(()=>{
     const p=localStorage.getItem("scholartrack:profile");
     if(p)setProfile(JSON.parse(p));
     const ph=localStorage.getItem("scholartrack:photo");
     if(ph)setPhotoUrl(ph);
   },[]);
+
   const saveProfile=useCallback((data)=>{setProfile(data);setEditing(false);localStorage.setItem("scholartrack:profile",JSON.stringify(data));}, []);
   const savePhoto=useCallback((url)=>{setPhotoUrl(url);localStorage.setItem("scholartrack:photo",url);}, []);
+
   if(!user)return<LoginPage onLogin={(u)=>{setUser(u);setScreen("splash");}}/>;
-  if(editing||!profile)return(<div style={{minHeight:"100vh",background:"#000",padding:"32px"}}><div style={{maxWidth:860,margin:"0 auto"}}><ProfileForm profile={profile} onSave={saveProfile} onCancel={profile?()=>setEditing(false):null} photoUrl={photoUrl} onPhotoChange={savePhoto}/></div></div>);
+  if(editing||!profile)return(<div style={{minHeight:"100vh",background:"#000",padding:"24px 16px"}}><div style={{maxWidth:860,margin:"0 auto"}}><ProfileForm profile={profile} onSave={saveProfile} onCancel={profile?()=>setEditing(false):null} photoUrl={photoUrl} onPhotoChange={savePhoto}/></div></div>);
   if(screen==="splash")return<SplashScreen profile={profile} photoUrl={photoUrl} onNavigate={()=>setScreen("dashboard")}/>;
   return<Dashboard user={user} profile={profile} onEditProfile={()=>setEditing(true)} onHome={()=>setScreen("splash")} photoUrl={photoUrl}/>;
 }
