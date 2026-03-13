@@ -214,7 +214,12 @@ function ProfileForm({profile,onSave,onCancel,photoUrl,onPhotoChange}){
   const handleAcceptedChange=(vals)=>{const nr=form.rejectedSchools.filter(s=>!vals.includes(s));setForm(f=>({...f,acceptedSchools:vals,rejectedSchools:nr}));};
   const handleRejectedChange=(vals)=>{const na=form.acceptedSchools.filter(s=>!vals.includes(s));setForm(f=>({...f,rejectedSchools:vals,acceptedSchools:na}));};
   const honorOptions=["AP Scholar","AP Scholar with Honor","AP Scholar with Distinction","AP Capstone Diploma","National Honor Society","National Merit Semifinalist","National Merit Finalist","Valedictorian","Salutatorian","Boys/Girls State","Eagle Scout / Gold Award"];
-  const handleSave=()=>{onSave(form);setSaved(true);setTimeout(()=>setSaved(false),2500);};
+  const handleSave=()=>{
+  if(!form.firstName||!form.lastName||!form.email||!form.gpaUnweighted||!form.sat||form.appliedSchools.length===0){
+    alert("Please fill in: First Name, Last Name, Email, GPA, SAT, and at least one school.");return;
+  }
+  onSave(form);setSaved(true);setTimeout(()=>setSaved(false),2500);
+};
   const handlePhoto=(e)=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=(ev)=>onPhotoChange(ev.target.result);reader.readAsDataURL(file);};
   const inp={width:"100%",padding:"10px 13px",borderRadius:7,border:"1px solid #2a2a2a",fontSize:13,color:"#fff",outline:"none",boxSizing:"border-box",background:"#111"};
   const lbl={display:"block",fontSize:11,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:0.8};
