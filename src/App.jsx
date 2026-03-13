@@ -329,17 +329,14 @@ export default function App(){
   const[editing,setEditing]=useState(false);
   const[screen,setScreen]=useState("splash");
   const[photoUrl,setPhotoUrl]=useState(null);
-
   useEffect(()=>{
     const p=localStorage.getItem("scholartrack:profile");
     if(p)setProfile(JSON.parse(p));
     const ph=localStorage.getItem("scholartrack:photo");
     if(ph)setPhotoUrl(ph);
   },[]);
-  
   const saveProfile=useCallback((data)=>{setProfile(data);setEditing(false);localStorage.setItem("scholartrack:profile",JSON.stringify(data));}, []);
   const savePhoto=useCallback((url)=>{setPhotoUrl(url);localStorage.setItem("scholartrack:photo",url);}, []);
-  
   if(!user)return<LoginPage onLogin={(u)=>{setUser(u);setScreen("splash");}}/>;
   if(editing||!profile)return(<div style={{minHeight:"100vh",background:"#000",padding:"32px"}}><div style={{maxWidth:860,margin:"0 auto"}}><ProfileForm profile={profile} onSave={saveProfile} onCancel={profile?()=>setEditing(false):null} photoUrl={photoUrl} onPhotoChange={savePhoto}/></div></div>);
   if(screen==="splash")return<SplashScreen profile={profile} photoUrl={photoUrl} onNavigate={()=>setScreen("dashboard")}/>;
