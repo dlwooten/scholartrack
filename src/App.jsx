@@ -130,11 +130,11 @@ function SplashScreen({profile,onNavigate,photoUrl}){
   return(<div style={{position:"relative",width:"100%",height:"100vh",overflow:"hidden",background:"#000",fontFamily:"'Arial Black','Arial Bold',sans-serif"}}>
     {photoUrl?<img src={photoUrl} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",filter:"grayscale(100%) brightness(0.45)",zIndex:0}}/>:<div style={{position:"absolute",inset:0,background:"linear-gradient(160deg,#111 0%,#222 50%,#0a0a0a 100%)",zIndex:0}}/>}
     <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.2) 60%,rgba(0,0,0,0.1) 100%)",zIndex:1}}/>
-    <div style={{position:"relative",zIndex:2,height:"100%",display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 0 48px 40px"}}>
+    <div style={{position:"relative",zIndex:2,height:"100%",display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 0 48px 24px"}}>
       <div style={{marginBottom:40}}>
-        <div style={{fontSize:"clamp(52px,10vw,96px)",fontWeight:900,color:"#fff",lineHeight:0.92,letterSpacing:"-2px",textTransform:"uppercase"}}>{firstName.toUpperCase()}'S</div>
-        <div style={{fontSize:"clamp(52px,10vw,96px)",fontWeight:900,color:"#e63c3c",lineHeight:0.92,letterSpacing:"-2px",textTransform:"uppercase"}}>SCHOLARSHIP</div>
-        <div style={{fontSize:"clamp(52px,10vw,96px)",fontWeight:900,color:"#fff",lineHeight:0.92,letterSpacing:"-2px",textTransform:"uppercase"}}>TRACKER</div>
+        <div style={{fontSize:"clamp(36px,8vw,96px)",fontWeight:900,color:"#fff",lineHeight:0.92,letterSpacing:"-2px",textTransform:"uppercase"}}>{firstName.toUpperCase()}'S</div>
+        <div style={{fontSize:"clamp(36px,8vw,96px)",fontWeight:900,color:"#e63c3c",lineHeight:0.92,letterSpacing:"-2px",textTransform:"uppercase"}}>SCHOLARSHIP</div>
+        <div style={{fontSize:"clamp(36px,8vw,96px)",fontWeight:900,color:"#fff",lineHeight:0.92,letterSpacing:"-2px",textTransform:"uppercase"}}>TRACKER</div>
       </div>
       <nav style={{display:"flex",flexDirection:"column",gap:0}}>
         {navItems.map((item,i)=>(<button key={item.id} onClick={()=>onNavigate(item.id)} style={{background:"none",border:"none",borderTop:i===0?"1px solid rgba(255,255,255,0.2)":"none",borderBottom:"1px solid rgba(255,255,255,0.2)",padding:"18px 0",textAlign:"left",color:"#fff",fontSize:"clamp(18px,3.5vw,26px)",fontWeight:400,fontFamily:"Arial,sans-serif",cursor:"pointer",letterSpacing:"0.5px",transition:"color 0.2s,padding-left 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.color="#e63c3c";e.currentTarget.style.paddingLeft="12px";}} onMouseLeave={e=>{e.currentTarget.style.color="#fff";e.currentTarget.style.paddingLeft="0px";}}>{item.label}</button>))}
@@ -405,12 +405,14 @@ export default function App(){
     if(p)setProfile(JSON.parse(p));
     const ph=localStorage.getItem("scholartrack:photo");
     if(ph)setPhotoUrl(ph);
+    const u=localStorage.getItem("scholartrack:user");
+    if(u){setUser(JSON.parse(u));setScreen("dashboard");}
   },[]);
-
+  
   const saveProfile=useCallback((data)=>{setProfile(data);setEditing(false);localStorage.setItem("scholartrack:profile",JSON.stringify(data));}, []);
   const savePhoto=useCallback((url)=>{setPhotoUrl(url);localStorage.setItem("scholartrack:photo",url);}, []);
 
-  if(!user)return<LoginPage onLogin={(u)=>{setUser(u);setScreen("splash");}}/>;
+  if(!user)return<LoginPage onLogin={(u)=>{setUser(u);setScreen("splash");localStorage.setItem("scholartrack:user",JSON.stringify(u));}}/>;
   if(editing||!profile)return(<div style={{minHeight:"100vh",background:"#000",padding:"24px 16px"}}><div style={{maxWidth:860,margin:"0 auto"}}><ProfileForm profile={profile} onSave={saveProfile} onCancel={profile?()=>setEditing(false):null} photoUrl={photoUrl} onPhotoChange={savePhoto}/></div></div>);
   if(screen==="splash")return<SplashScreen profile={profile} photoUrl={photoUrl} onNavigate={()=>setScreen("dashboard")}/>;
   return<Dashboard user={user} profile={profile} onEditProfile={()=>setEditing(true)} onHome={()=>setScreen("splash")} photoUrl={photoUrl}/>;
