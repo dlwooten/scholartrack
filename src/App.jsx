@@ -1,4 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDFuI5-asIexoxwoMa4B6KOdS0B5A4pqB0",
+  authDomain: "scholartrack-80634.firebaseapp.com",
+  projectId: "scholartrack-80634",
+  storageBucket: "scholartrack-80634.firebasestorage.app",
+  messagingSenderId: "916489582643",
+  appId: "1:916489582643:web:f045290e42f90bc7998b46"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
 
 const ALL_SCHOOLS = [
   "Alabama A&M University","Auburn University","University of Alabama","University of Alabama at Birmingham",
@@ -139,10 +152,8 @@ const TASK_CATEGORIES=["All","Application","Essay","Financial Aid","Scholarship"
 // TASK & CALENDAR TAB
 // ─────────────────────────────────────────────
 function TasksCalendar(){
-  const storageKey="scholartrack:tasks";
-  const[tasks,setTasks]=useState(()=>{
-    try{const s=localStorage.getItem(storageKey);return s?JSON.parse(s):[];}catch{return [];}
-  });
+  const[tasks,setTasks]=useState([]);
+  const[loading,setLoading]=useState(true);
   const[view,setView]=useState("list"); // "list" | "calendar"
   const[showForm,setShowForm]=useState(false);
   const[editTask,setEditTask]=useState(null);
@@ -152,9 +163,19 @@ function TasksCalendar(){
   const[form,setForm]=useState({title:"",category:"Application",priority:"medium",deadline:"",notes:"",done:false,reminders:[]});
   const[formError,setFormError]=useState("");
 
-  useEffect(()=>{try{localStorage.setItem(storageKey,JSON.stringify(tasks));}catch{};},[tasks]);
+  useEffect(()=>{
+    const unsub=onSnapshot(doc(db,"scholartrack","tasks"),(snap)=>{
+      if(snap.exists()){setTasks(snap.data().list||[]);}
+      else{setTasks([]);}
+      setLoading(false);
+    });
+    return()=>unsub();
+  },[]);
 
-  const saveTasks=(t)=>setTasks(t);
+  const saveTasks=async(t)=>{
+    setTasks(t);
+    await setDoc(doc(db,"scholartrack","tasks"),{list:t});
+  };
 
   const REMINDER_CONTACTS="jean.wooten@gmail.com,dlwooten@gmail.com,jacob.wooten0708@gmail.com";
   const REMINDER_LABELS={"1w":"1 week","3d":"3 days","2d":"2 days","24h":"24 hours","3h":"3 hours"};
@@ -252,6 +273,8 @@ Deadline: ${dl}${task.notes?`\nNotes: ${task.notes}`:""}
   const completedCount=tasks.filter(t=>t.done).length;
   const overdueCount=tasks.filter(t=>!t.done&&t.deadline&&daysUntil(t.deadline)<0).length;
   const urgentCount=tasks.filter(t=>!t.done&&t.deadline&&daysUntil(t.deadline)>=0&&daysUntil(t.deadline)<=7).length;
+
+  if(loading)return(<div style={{textAlign:"center",padding:"60px 20px",color:"#555"}}><div style={{fontSize:13,letterSpacing:"2px",textTransform:"uppercase"}}>Syncing tasks…</div></div>);
 
   return(
     <div>
@@ -777,21 +800,38 @@ export default function App(){
   const[screen,setScreen]=useState("splash");
   const[photoUrl,setPhotoUrl]=useState(null);
   const[initialTab,setInitialTab]=useState("overview");
+  const[appLoading,setAppLoading]=useState(true);
 
   useEffect(()=>{
-    const p=localStorage.getItem("scholartrack:profile");
-    if(p)setProfile(JSON.parse(p));
-    const ph=localStorage.getItem("scholartrack:photo");
-    if(ph)setPhotoUrl(ph);
+    // Load user from localStorage (login state stays local)
     const u=localStorage.getItem("scholartrack:user");
     if(u){setUser(JSON.parse(u));setScreen("dashboard");}
+
+    // Load profile + photo from Firestore (synced across devices)
+    const unsubProfile=onSnapshot(doc(db,"scholartrack","profile"),(snap)=>{
+      if(snap.exists())setProfile(snap.data());
+    });
+    const unsubPhoto=onSnapshot(doc(db,"scholartrack","photo"),(snap)=>{
+      if(snap.exists())setPhotoUrl(snap.data().url||null);
+    });
+    setAppLoading(false);
+    return()=>{unsubProfile();unsubPhoto();};
   },[]);
-  
-  const saveProfile=useCallback((data)=>{setProfile(data);setEditing(false);localStorage.setItem("scholartrack:profile",JSON.stringify(data));}, []);
-  const savePhoto=useCallback((url)=>{setPhotoUrl(url);localStorage.setItem("scholartrack:photo",url);}, []);
+
+  const saveProfile=useCallback(async(data)=>{
+    setProfile(data);
+    setEditing(false);
+    await setDoc(doc(db,"scholartrack","profile"),data);
+  },[]);
+
+  const savePhoto=useCallback(async(url)=>{
+    setPhotoUrl(url);
+    await setDoc(doc(db,"scholartrack","photo"),{url});
+  },[]);
 
   const handleNavigate=(tabId)=>{setInitialTab(tabId);setScreen("dashboard");};
 
+  if(appLoading)return(<div style={{minHeight:"100vh",background:"#000",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:"#555",fontSize:13,letterSpacing:"2px",textTransform:"uppercase"}}>Loading…</div></div>);
   if(!user)return<LoginPage onLogin={(u)=>{setUser(u);setScreen("splash");localStorage.setItem("scholartrack:user",JSON.stringify(u));}}/>;
   if(editing||!profile)return(<div style={{minHeight:"100vh",background:"#000",padding:"24px 16px",overflowX:"hidden"}}><div style={{maxWidth:600,margin:"0 auto"}}><ProfileForm profile={profile} onSave={saveProfile} onCancel={profile?()=>setEditing(false):null} photoUrl={photoUrl} onPhotoChange={savePhoto}/></div></div>);
   if(screen==="splash")return<SplashScreen profile={profile} photoUrl={photoUrl} onNavigate={handleNavigate}/>;
