@@ -156,6 +156,26 @@ function TasksCalendar(){
 
   const saveTasks=(t)=>setTasks(t);
 
+  const REMINDER_CONTACTS="jean.wooten@gmail.com,dlwooten@gmail.com,jacob.wooten0708@gmail.com";
+  const REMINDER_LABELS={"1w":"1 week","3d":"3 days","2d":"2 days","24h":"24 hours","3h":"3 hours"};
+
+  const buildMailto=(task,reminderKey)=>{
+    const dl=task.deadline?new Date(task.deadline+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"}):"No deadline set";
+    const timing=reminderKey?`This is your ${REMINDER_LABELS[reminderKey]} reminder.`:"Reminder:";
+    const subject=encodeURIComponent(`📅 Scholarship Reminder: ${task.title}`);
+    const body=encodeURIComponent(
+`${timing}
+
+Task: ${task.title}
+Category: ${task.category}
+Priority: ${task.priority.toUpperCase()}
+Deadline: ${dl}${task.notes?`\nNotes: ${task.notes}`:""}
+
+— Jacob's ScholarTrack`
+    );
+    return`mailto:${REMINDER_CONTACTS}?subject=${subject}&body=${body}`;
+  };
+
   const openNew=()=>{setForm({title:"",category:"Application",priority:"medium",deadline:"",notes:"",done:false,reminders:[]});setEditTask(null);setFormError("");setShowForm(true);};
   const openEdit=(task)=>{setForm({...task,reminders:task.reminders||[]});setEditTask(task.id);setFormError("");setShowForm(true);};
   const closeForm=()=>{setShowForm(false);setEditTask(null);setFormError("");};
@@ -307,14 +327,30 @@ function TasksCalendar(){
               <textarea style={{...inp,height:60,resize:"vertical",fontFamily:"inherit"}} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Optional details…" onFocus={e=>e.target.style.borderColor="#e63c3c"} onBlur={e=>e.target.style.borderColor="#2a2a2a"}/>
             </div>
             <div style={{background:"#111",borderRadius:8,border:"1px solid #1f1f1f",padding:"14px 16px"}}>
-              <div style={{fontSize:10,fontWeight:700,color:"#e63c3c",textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:4}}>🔔 Deadline Reminders</div>
-              <div style={{fontSize:11,color:"#555",marginBottom:12}}>{form.deadline?"Select when to receive notifications:":"Set a deadline above to enable reminders."}</div>
-              <div style={{display:"flex",flexDirection:"column",gap:10,opacity:form.deadline?1:0.35,pointerEvents:form.deadline?"auto":"none"}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#e63c3c",textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:4}}>📧 Email Reminders</div>
+              <div style={{fontSize:11,color:"#555",marginBottom:10}}>{form.deadline?"Choose when to send reminder emails:":"Set a deadline above to enable reminders."}</div>
+              {/* Recipients */}
+              <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:12,padding:"10px 12px",background:"#0d0d0d",borderRadius:7,border:"1px solid #1a1a1a"}}>
+                <div style={{fontSize:10,fontWeight:700,color:"#555",textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>Recipients</div>
                 {[
-                  {key:"1w",label:"1 week before",desc:"7 days"},
-                  {key:"3d",label:"3 days before",desc:"72 hours"},
-                  {key:"2d",label:"2 days before",desc:"48 hours"},
-                  {key:"24h",label:"24 hours before",desc:"1 day"},
+                  {name:"Jean Wooten",email:"jean.wooten@gmail.com",phone:"(404) 202-2466"},
+                  {name:"DL Wooten",email:"dlwooten@gmail.com",phone:"(678) 576-1744"},
+                  {name:"Jacob Wooten",email:"jacob.wooten0708@gmail.com",phone:"(404) 863-5535"},
+                ].map(c=>(
+                  <div key={c.email} style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{width:6,height:6,borderRadius:"50%",background:"#4ade80",flexShrink:0}}/>
+                    <span style={{fontSize:11,color:"#aaa",fontWeight:700}}>{c.name}</span>
+                    <span style={{fontSize:10,color:"#555"}}>{c.email}</span>
+                  </div>
+                ))}
+              </div>
+              {/* Reminder timing checkboxes */}
+              <div style={{display:"flex",flexDirection:"column",gap:8,opacity:form.deadline?1:0.35,pointerEvents:form.deadline?"auto":"none"}}>
+                {[
+                  {key:"1w",label:"1 week before",desc:"7 days out"},
+                  {key:"3d",label:"3 days before",desc:"72 hours out"},
+                  {key:"2d",label:"2 days before",desc:"48 hours out"},
+                  {key:"24h",label:"24 hours before",desc:"1 day out"},
                   {key:"3h",label:"3 hours before",desc:"Day-of reminder"},
                 ].map(r=>{
                   const checked=(form.reminders||[]).includes(r.key);
@@ -333,8 +369,8 @@ function TasksCalendar(){
               </div>
               {(form.reminders||[]).length>0&&form.deadline&&(
                 <div style={{marginTop:10,padding:"8px 10px",borderRadius:6,background:"rgba(74,222,128,0.07)",border:"1px solid rgba(74,222,128,0.2)"}}>
-                  <div style={{fontSize:11,color:"#4ade80",fontWeight:700}}>{(form.reminders||[]).length} reminder{(form.reminders||[]).length>1?"s":""} set ✓</div>
-                  <div style={{fontSize:10,color:"#555",marginTop:2}}>Notifications will appear as browser alerts at the scheduled times.</div>
+                  <div style={{fontSize:11,color:"#4ade80",fontWeight:700}}>{(form.reminders||[]).length} reminder{(form.reminders||[]).length>1?"s":""} scheduled ✓</div>
+                  <div style={{fontSize:10,color:"#555",marginTop:2}}>Use the "Send Email" button on each task to open a pre-filled email to all 3 recipients.</div>
                 </div>
               )}
             </div>
@@ -384,9 +420,19 @@ function TasksCalendar(){
                           <div style={{fontSize:10,color:"#444"}}>{new Date(task.deadline+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
                         </div>
                       )}
-                      <div style={{display:"flex",gap:6}}>
-                        <button onClick={()=>openEdit(task)} style={{padding:"3px 9px",borderRadius:5,border:"1px solid #2a2a2a",background:"transparent",color:"#666",fontSize:11,cursor:"pointer"}}>Edit</button>
-                        <button onClick={()=>deleteTask(task.id)} style={{padding:"3px 9px",borderRadius:5,border:"1px solid rgba(230,60,60,0.2)",background:"transparent",color:"#e63c3c",fontSize:11,cursor:"pointer"}}>✕</button>
+                      <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"flex-end"}}>
+                        {task.deadline&&(task.reminders||[]).length>0&&(
+                          <div style={{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"flex-end",marginBottom:2}}>
+                            {(task.reminders||[]).map(rk=>(
+                              <a key={rk} href={buildMailto(task,rk)} style={{padding:"2px 7px",borderRadius:4,border:"1px solid rgba(251,191,36,0.25)",background:"rgba(251,191,36,0.07)",color:"#fbbf24",fontSize:10,fontWeight:700,textDecoration:"none",cursor:"pointer"}}>{REMINDER_LABELS[rk]}</a>
+                            ))}
+                          </div>
+                        )}
+                        <div style={{display:"flex",gap:6}}>
+                          {task.deadline&&<a href={buildMailto(task,null)} style={{padding:"3px 9px",borderRadius:5,border:"1px solid rgba(74,222,128,0.25)",background:"transparent",color:"#4ade80",fontSize:11,fontWeight:700,textDecoration:"none",cursor:"pointer"}}>✉ Email</a>}
+                          <button onClick={()=>openEdit(task)} style={{padding:"3px 9px",borderRadius:5,border:"1px solid #2a2a2a",background:"transparent",color:"#666",fontSize:11,cursor:"pointer"}}>Edit</button>
+                          <button onClick={()=>deleteTask(task.id)} style={{padding:"3px 9px",borderRadius:5,border:"1px solid rgba(230,60,60,0.2)",background:"transparent",color:"#e63c3c",fontSize:11,cursor:"pointer"}}>✕</button>
+                        </div>
                       </div>
                     </div>
                   </div>
