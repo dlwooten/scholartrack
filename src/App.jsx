@@ -124,8 +124,307 @@ const CATEGORY_COLORS={"Merit":{bg:"#1a1a1a",text:"#fff",border:"#333"},"Leaders
 function catStyle(cat){return CATEGORY_COLORS[cat]||{bg:"#1a1a1a",text:"#aaa",border:"#333"};}
 const STATUS_CONFIG={accepted:{color:"#4ade80",bg:"rgba(74,222,128,0.1)",label:"Accepted",icon:"✓"},waiting:{color:"#fbbf24",bg:"rgba(251,191,36,0.1)",label:"Pending",icon:"⏳"},rejected:{color:"#f87171",bg:"rgba(248,113,113,0.1)",label:"Rejected",icon:"✕"}};
 
+// ─────────────────────────────────────────────
+// TASK PRIORITY CONFIG
+// ─────────────────────────────────────────────
+const PRIORITY_CONFIG={
+  high:{color:"#e63c3c",bg:"rgba(230,60,60,0.12)",label:"High",border:"rgba(230,60,60,0.3)"},
+  medium:{color:"#fbbf24",bg:"rgba(251,191,36,0.12)",label:"Med",border:"rgba(251,191,36,0.3)"},
+  low:{color:"#4ade80",bg:"rgba(74,222,128,0.12)",label:"Low",border:"rgba(74,222,128,0.3)"},
+};
+
+const TASK_CATEGORIES=["All","Application","Essay","Financial Aid","Scholarship","Test Prep","Other"];
+
+// ─────────────────────────────────────────────
+// TASK & CALENDAR TAB
+// ─────────────────────────────────────────────
+function TasksCalendar(){
+  const storageKey="scholartrack:tasks";
+  const[tasks,setTasks]=useState(()=>{
+    try{const s=localStorage.getItem(storageKey);return s?JSON.parse(s):[];}catch{return [];}
+  });
+  const[view,setView]=useState("list"); // "list" | "calendar"
+  const[showForm,setShowForm]=useState(false);
+  const[editTask,setEditTask]=useState(null);
+  const[filterCat,setFilterCat]=useState("All");
+  const[filterDone,setFilterDone]=useState(false);
+  const[calMonth,setCalMonth]=useState(()=>new Date(TODAY.getFullYear(),TODAY.getMonth(),1));
+  const[form,setForm]=useState({title:"",category:"Application",priority:"medium",deadline:"",notes:"",done:false});
+  const[formError,setFormError]=useState("");
+
+  useEffect(()=>{try{localStorage.setItem(storageKey,JSON.stringify(tasks));}catch{};},[tasks]);
+
+  const saveTasks=(t)=>setTasks(t);
+
+  const openNew=()=>{setForm({title:"",category:"Application",priority:"medium",deadline:"",notes:"",done:false});setEditTask(null);setFormError("");setShowForm(true);};
+  const openEdit=(task)=>{setForm({...task});setEditTask(task.id);setFormError("");setShowForm(true);};
+  const closeForm=()=>{setShowForm(false);setEditTask(null);setFormError("");};
+
+  const submitForm=()=>{
+    if(!form.title.trim()){setFormError("Task title is required.");return;}
+    if(editTask!=null){
+      saveTasks(tasks.map(t=>t.id===editTask?{...form,id:editTask}:t));
+    } else {
+      saveTasks([...tasks,{...form,id:Date.now()}]);
+    }
+    closeForm();
+  };
+
+  const toggleDone=(id)=>saveTasks(tasks.map(t=>t.id===id?{...t,done:!t.done}:t));
+  const deleteTask=(id)=>saveTasks(tasks.filter(t=>t.id!==id));
+
+  const filtered=tasks
+    .filter(t=>filterCat==="All"||t.category===filterCat)
+    .filter(t=>filterDone||!t.done)
+    .sort((a,b)=>{
+      if(a.done!==b.done)return a.done?1:-1;
+      if(a.deadline&&b.deadline)return new Date(a.deadline)-new Date(b.deadline);
+      if(a.deadline)return -1;
+      if(b.deadline)return 1;
+      return 0;
+    });
+
+  // Calendar helpers
+  const calDays=()=>{
+    const year=calMonth.getFullYear(),month=calMonth.getMonth();
+    const first=new Date(year,month,1).getDay();
+    const daysInMonth=new Date(year,month+1,0).getDate();
+    const cells=[];
+    for(let i=0;i<first;i++)cells.push(null);
+    for(let d=1;d<=daysInMonth;d++)cells.push(d);
+    return cells;
+  };
+  const tasksForDay=(day)=>{
+    if(!day)return[];
+    const year=calMonth.getFullYear(),month=calMonth.getMonth();
+    const dateStr=`${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    return tasks.filter(t=>t.deadline===dateStr);
+  };
+  const isToday=(day)=>{
+    if(!day)return false;
+    return calMonth.getFullYear()===TODAY.getFullYear()&&calMonth.getMonth()===TODAY.getMonth()&&day===TODAY.getDate();
+  };
+  const monthLabel=calMonth.toLocaleDateString("en-US",{month:"long",year:"numeric"});
+
+  const inp={width:"100%",padding:"9px 13px",borderRadius:7,border:"1px solid #2a2a2a",fontSize:13,color:"#fff",outline:"none",boxSizing:"border-box",background:"#111"};
+  const lbl={display:"block",fontSize:10,fontWeight:700,color:"#555",marginBottom:5,textTransform:"uppercase",letterSpacing:0.8};
+
+  const urgencyColor=(deadline,done)=>{
+    if(done)return "#333";
+    if(!deadline)return "#555";
+    const d=daysUntil(deadline);
+    if(d<0)return "#555";
+    if(d===0)return "#e63c3c";
+    if(d<=7)return "#e63c3c";
+    if(d<=30)return "#fbbf24";
+    return "#4ade80";
+  };
+  const urgencyLabel=(deadline,done)=>{
+    if(done)return"Done";
+    if(!deadline)return"No deadline";
+    const d=daysUntil(deadline);
+    if(d<0)return"Passed";
+    if(d===0)return"Due TODAY";
+    if(d===1)return"Due TOMORROW";
+    return`${d}d left`;
+  };
+
+  const completedCount=tasks.filter(t=>t.done).length;
+  const overdueCount=tasks.filter(t=>!t.done&&t.deadline&&daysUntil(t.deadline)<0).length;
+  const urgentCount=tasks.filter(t=>!t.done&&t.deadline&&daysUntil(t.deadline)>=0&&daysUntil(t.deadline)<=7).length;
+
+  return(
+    <div>
+      {/* Stats Row */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
+        {[
+          {label:"Total",value:tasks.length,color:"#fff"},
+          {label:"Done",value:completedCount,color:"#4ade80"},
+          {label:"Urgent",value:urgentCount,color:"#fbbf24"},
+          {label:"Overdue",value:overdueCount,color:"#f87171"},
+        ].map(s=>(
+          <div key={s.label} style={{background:"#0d0d0d",border:"1px solid #1a1a1a",borderRadius:10,padding:"14px 12px"}}>
+            <div style={{fontSize:28,fontWeight:900,color:s.color,fontFamily:"'Arial Black',sans-serif",lineHeight:1}}>{s.value}</div>
+            <div style={{fontSize:10,color:"#555",marginTop:4,textTransform:"uppercase",letterSpacing:"1px"}}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Controls Row */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10,marginBottom:14}}>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          <button onClick={()=>setView("list")} style={{padding:"5px 14px",borderRadius:20,border:"1px solid",fontSize:11,fontWeight:700,cursor:"pointer",borderColor:view==="list"?"#e63c3c":"#2a2a2a",background:view==="list"?"rgba(230,60,60,0.1)":"transparent",color:view==="list"?"#e63c3c":"#666"}}>☰ List</button>
+          <button onClick={()=>setView("calendar")} style={{padding:"5px 14px",borderRadius:20,border:"1px solid",fontSize:11,fontWeight:700,cursor:"pointer",borderColor:view==="calendar"?"#e63c3c":"#2a2a2a",background:view==="calendar"?"rgba(230,60,60,0.1)":"transparent",color:view==="calendar"?"#e63c3c":"#666"}}>◫ Calendar</button>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <button onClick={()=>setFilterDone(!filterDone)} style={{padding:"5px 12px",borderRadius:20,border:"1px solid",fontSize:11,fontWeight:700,cursor:"pointer",borderColor:filterDone?"#4ade80":"#2a2a2a",background:filterDone?"rgba(74,222,128,0.1)":"transparent",color:filterDone?"#4ade80":"#666"}}>{filterDone?"Show All":"Hide Done"}</button>
+          <button onClick={openNew} style={{padding:"7px 16px",borderRadius:20,border:"none",background:"#e63c3c",color:"#fff",fontSize:12,fontWeight:900,cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.5px"}}>+ Add Task</button>
+        </div>
+      </div>
+
+      {/* Category Filter */}
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>
+        {TASK_CATEGORIES.map(c=>(
+          <button key={c} onClick={()=>setFilterCat(c)} style={{padding:"4px 12px",borderRadius:20,border:"1px solid",fontSize:11,fontWeight:700,cursor:"pointer",borderColor:filterCat===c?"#e63c3c":"#2a2a2a",background:filterCat===c?"rgba(230,60,60,0.1)":"transparent",color:filterCat===c?"#e63c3c":"#666"}}>{c}</button>
+        ))}
+      </div>
+
+      {/* Add/Edit Task Form */}
+      {showForm&&(
+        <div style={{background:"#0d0d0d",borderRadius:12,border:"1px solid #2a2a2a",padding:"20px",marginBottom:18}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+            <div style={{fontSize:13,fontWeight:900,color:"#fff",textTransform:"uppercase",letterSpacing:"1px"}}>{editTask?"Edit Task":"New Task"}</div>
+            <button onClick={closeForm} style={{background:"transparent",border:"none",color:"#555",fontSize:18,cursor:"pointer",lineHeight:1}}>×</button>
+          </div>
+          {formError&&<div style={{background:"rgba(230,60,60,0.1)",border:"1px solid rgba(230,60,60,0.3)",borderRadius:6,padding:"8px 12px",marginBottom:12,color:"#e63c3c",fontSize:12}}>{formError}</div>}
+          <div style={{display:"grid",gridTemplateColumns:"1fr",gap:12}}>
+            <div>
+              <label style={lbl}>Task Title *</label>
+              <input style={inp} value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} placeholder="e.g. Submit UA scholarship application" onFocus={e=>e.target.style.borderColor="#e63c3c"} onBlur={e=>e.target.style.borderColor="#2a2a2a"}/>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div>
+                <label style={lbl}>Category</label>
+                <select style={{...inp,cursor:"pointer"}} value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))}>
+                  {TASK_CATEGORIES.filter(c=>c!=="All").map(c=><option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>Priority</label>
+                <select style={{...inp,cursor:"pointer"}} value={form.priority} onChange={e=>setForm(f=>({...f,priority:e.target.value}))}>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label style={lbl}>Deadline</label>
+              <input style={inp} type="date" value={form.deadline} onChange={e=>setForm(f=>({...f,deadline:e.target.value}))} onFocus={e=>e.target.style.borderColor="#e63c3c"} onBlur={e=>e.target.style.borderColor="#2a2a2a"}/>
+            </div>
+            <div>
+              <label style={lbl}>Notes</label>
+              <textarea style={{...inp,height:60,resize:"vertical",fontFamily:"inherit"}} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Optional details…" onFocus={e=>e.target.style.borderColor="#e63c3c"} onBlur={e=>e.target.style.borderColor="#2a2a2a"}/>
+            </div>
+          </div>
+          <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:14}}>
+            <button onClick={closeForm} style={{padding:"9px 20px",borderRadius:7,border:"1px solid #2a2a2a",background:"transparent",color:"#888",fontSize:12,cursor:"pointer"}}>Cancel</button>
+            <button onClick={submitForm} style={{padding:"9px 24px",borderRadius:7,border:"none",background:"#e63c3c",color:"#fff",fontSize:12,fontWeight:900,cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.5px"}}>Save Task</button>
+          </div>
+        </div>
+      )}
+
+      {/* LIST VIEW */}
+      {view==="list"&&(
+        <div>
+          {filtered.length===0?(
+            <div style={{textAlign:"center",padding:"50px 20px",color:"#444"}}>
+              <div style={{fontSize:36,marginBottom:12}}>✓</div>
+              <p style={{fontSize:13,margin:0}}>{tasks.length===0?"No tasks yet. Add your first task above.":"No tasks match your filters."}</p>
+            </div>
+          ):(
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {filtered.map(task=>{
+                const pri=PRIORITY_CONFIG[task.priority]||PRIORITY_CONFIG.medium;
+                const uc=urgencyColor(task.deadline,task.done);
+                const ul=urgencyLabel(task.deadline,task.done);
+                return(
+                  <div key={task.id} style={{background:"#0d0d0d",borderRadius:10,border:`1px solid ${task.done?"#1a1a1a":"#222"}`,padding:"12px 14px",display:"flex",alignItems:"flex-start",gap:12,opacity:task.done?0.5:1,transition:"all 0.15s"}} onMouseEnter={e=>{if(!task.done)e.currentTarget.style.borderColor="#333";}} onMouseLeave={e=>e.currentTarget.style.borderColor=task.done?"#1a1a1a":"#222"}>
+                    {/* Checkbox */}
+                    <button onClick={()=>toggleDone(task.id)} style={{width:22,height:22,borderRadius:5,border:`2px solid ${task.done?"#4ade80":"#333"}`,background:task.done?"rgba(74,222,128,0.15)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,marginTop:1,padding:0}}>
+                      {task.done&&<span style={{color:"#4ade80",fontSize:12,fontWeight:900}}>✓</span>}
+                    </button>
+                    {/* Content */}
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:3}}>
+                        <span style={{fontSize:13,fontWeight:700,color:task.done?"#555":"#fff",textDecoration:task.done?"line-through":"none"}}>{task.title}</span>
+                        <span style={{fontSize:10,padding:"2px 7px",borderRadius:20,background:pri.bg,color:pri.color,border:`1px solid ${pri.border}`,fontWeight:700}}>{pri.label}</span>
+                        <span style={{fontSize:10,padding:"2px 7px",borderRadius:20,background:"#1a1a1a",color:"#666",border:"1px solid #2a2a2a"}}>{task.category}</span>
+                      </div>
+                      {task.notes&&<p style={{fontSize:12,color:"#666",margin:"2px 0 0",lineHeight:1.5}}>{task.notes}</p>}
+                    </div>
+                    {/* Right: deadline + actions */}
+                    <div style={{flexShrink:0,textAlign:"right",display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
+                      {task.deadline&&(
+                        <div>
+                          <div style={{fontSize:11,fontWeight:700,color:uc}}>{ul}</div>
+                          <div style={{fontSize:10,color:"#444"}}>{new Date(task.deadline+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
+                        </div>
+                      )}
+                      <div style={{display:"flex",gap:6}}>
+                        <button onClick={()=>openEdit(task)} style={{padding:"3px 9px",borderRadius:5,border:"1px solid #2a2a2a",background:"transparent",color:"#666",fontSize:11,cursor:"pointer"}}>Edit</button>
+                        <button onClick={()=>deleteTask(task.id)} style={{padding:"3px 9px",borderRadius:5,border:"1px solid rgba(230,60,60,0.2)",background:"transparent",color:"#e63c3c",fontSize:11,cursor:"pointer"}}>✕</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* CALENDAR VIEW */}
+      {view==="calendar"&&(
+        <div>
+          {/* Month Nav */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+            <button onClick={()=>setCalMonth(m=>new Date(m.getFullYear(),m.getMonth()-1,1))} style={{padding:"6px 14px",borderRadius:7,border:"1px solid #2a2a2a",background:"transparent",color:"#fff",fontSize:16,cursor:"pointer",lineHeight:1}}>‹</button>
+            <div style={{fontSize:14,fontWeight:900,color:"#fff",textTransform:"uppercase",letterSpacing:"1px"}}>{monthLabel}</div>
+            <button onClick={()=>setCalMonth(m=>new Date(m.getFullYear(),m.getMonth()+1,1))} style={{padding:"6px 14px",borderRadius:7,border:"1px solid #2a2a2a",background:"transparent",color:"#fff",fontSize:16,cursor:"pointer",lineHeight:1}}>›</button>
+          </div>
+          {/* Day headers */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:3}}>
+            {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>(
+              <div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:"#555",padding:"4px 0",textTransform:"uppercase",letterSpacing:"0.5px"}}>{d}</div>
+            ))}
+          </div>
+          {/* Day cells */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3}}>
+            {calDays().map((day,i)=>{
+              const dayTasks=tasksForDay(day);
+              const today=isToday(day);
+              const hasUrgent=dayTasks.some(t=>!t.done&&daysUntil(t.deadline)<=7);
+              const hasAny=dayTasks.length>0;
+              return(
+                <div key={i} style={{minHeight:64,borderRadius:7,border:`1px solid ${today?"#e63c3c":day?"#1a1a1a":"transparent"}`,background:today?"rgba(230,60,60,0.06)":day?"#0d0d0d":"transparent",padding:"6px 5px",position:"relative",boxSizing:"border-box"}}>
+                  {day&&<div style={{fontSize:11,fontWeight:today?900:400,color:today?"#e63c3c":"#666",marginBottom:4,textAlign:"right"}}>{day}</div>}
+                  <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                    {dayTasks.slice(0,3).map(t=>{
+                      const pri=PRIORITY_CONFIG[t.priority]||PRIORITY_CONFIG.medium;
+                      return(
+                        <div key={t.id} style={{fontSize:9,padding:"2px 5px",borderRadius:3,background:t.done?"#1a1a1a":pri.bg,color:t.done?"#444":pri.color,fontWeight:700,lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",cursor:"pointer",border:`1px solid ${t.done?"#222":pri.border}`}} title={t.title} onClick={()=>openEdit(t)}>
+                          {t.done?"✓ ":""}{t.title}
+                        </div>
+                      );
+                    })}
+                    {dayTasks.length>3&&<div style={{fontSize:9,color:"#555",paddingLeft:5}}>+{dayTasks.length-3} more</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {/* Legend */}
+          <div style={{display:"flex",gap:16,marginTop:12,flexWrap:"wrap"}}>
+            {[["High","#e63c3c"],["Medium","#fbbf24"],["Low","#4ade80"],["Done","#333"]].map(([l,c])=>(
+              <span key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"#555"}}>
+                <span style={{width:8,height:8,borderRadius:2,background:c,display:"inline-block"}}/>
+                {l}
+              </span>
+            ))}
+            <span style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"#555"}}>
+              <span style={{width:8,height:8,borderRadius:2,border:"1px solid #e63c3c",display:"inline-block"}}/>
+              Today
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SplashScreen({profile,onNavigate,photoUrl}){
-  const navItems=[{id:"overview",label:"Overview"},{id:"applications",label:"Applications"},{id:"school-awards",label:"Awards"},{id:"independent",label:"Independent Scholies"}];
+  const navItems=[{id:"overview",label:"Overview"},{id:"applications",label:"Applications"},{id:"school-awards",label:"Awards"},{id:"independent",label:"Independent Scholies"},{id:"tasks",label:"Tasks & Calendar"}];
   const firstName=profile?.firstName||"Jacob";
   return(<div style={{position:"relative",width:"100%",height:"100vh",overflow:"hidden",background:"#000",fontFamily:"'Arial Black','Arial Bold',sans-serif"}}>
     {photoUrl?<img src={photoUrl} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",filter:"grayscale(100%) brightness(0.45)",zIndex:0}}/>:<div style={{position:"absolute",inset:0,background:"linear-gradient(160deg,#111 0%,#222 50%,#0a0a0a 100%)",zIndex:0}}/>}
@@ -272,7 +571,6 @@ function ProfileForm({profile,onSave,onCancel,photoUrl,onPhotoChange}){
   </div>);
 }
 
-// Hamburger icon component
 function HamburgerIcon({open}){
   return(
     <div style={{width:24,height:18,display:"flex",flexDirection:"column",justifyContent:"space-between",cursor:"pointer"}}>
@@ -283,8 +581,8 @@ function HamburgerIcon({open}){
   );
 }
 
-function Dashboard({user,profile,onEditProfile,onHome,photoUrl}){
-  const[tab,setTab]=useState("overview");
+function Dashboard({user,profile,onEditProfile,onHome,photoUrl,initialTab}){
+  const[tab,setTab]=useState(initialTab||"overview");
   const[schoolFilter,setSchoolFilter]=useState(null);
   const[indepCat,setIndepCat]=useState("All");
   const[showPassed,setShowPassed]=useState(false);
@@ -297,7 +595,7 @@ function Dashboard({user,profile,onEditProfile,onHome,photoUrl}){
   const totalSchoolAwards=acceptedSchools.filter(s=>SCHOOL_SCHOLARSHIPS[s]).reduce((sum,s)=>sum+(SCHOOL_SCHOLARSHIPS[s]?.length||0),0);
   const indepCats=["All",...Array.from(new Set(INDEPENDENT_SCHOLARSHIPS.map(s=>s.category)))];
   const indepFiltered=INDEPENDENT_SCHOLARSHIPS.filter(s=>indepCat==="All"||s.category===indepCat).filter(s=>showPassed||daysUntil(s.deadline)>=0);
-  const tabs=[{id:"overview",label:"Overview"},{id:"applications",label:"Applications"},{id:"school-awards",label:"Awards"},{id:"independent",label:"Independent"}];
+  const tabs=[{id:"overview",label:"Overview"},{id:"applications",label:"Applications"},{id:"school-awards",label:"Awards"},{id:"independent",label:"Independent"},{id:"tasks",label:"Tasks"}];
   const fn=profile?.firstName||"";
 
   const handleTabChange=(id)=>{setTab(id);setMenuOpen(false);};
@@ -306,22 +604,16 @@ function Dashboard({user,profile,onEditProfile,onHome,photoUrl}){
 
   return(
     <div style={{minHeight:"100vh",background:"#000",color:"#fff",fontFamily:"Arial,sans-serif"}}>
-      {/* Sticky Header */}
       <div style={{background:"#000",borderBottom:"1px solid #1a1a1a",padding:"0 16px",position:"sticky",top:0,zIndex:100}}>
         <div style={{maxWidth:1100,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:56}}>
-          {/* Logo */}
           <button onClick={handleHome} style={{background:"none",border:"none",color:"#fff",fontSize:16,fontWeight:900,fontFamily:"'Arial Black',sans-serif",cursor:"pointer",padding:0,letterSpacing:"-1px",textTransform:"uppercase",flexShrink:0}}>
             {fn?`${fn.toUpperCase()}'S `:<span/>}<span style={{color:"#e63c3c"}}>ST</span>
           </button>
-
-          {/* Desktop nav — hidden on mobile */}
-          <div style={{display:"flex",gap:0,flex:1,marginLeft:24,overflow:"hidden"}} className="desktop-nav">
+          <div style={{display:"flex",gap:0,flex:1,marginLeft:24,overflow:"hidden"}}>
             {tabs.map(t=>(
               <button key={t.id} onClick={()=>handleTabChange(t.id)} style={{padding:"18px 16px",background:"none",border:"none",borderBottom:`2px solid ${tab===t.id?"#e63c3c":"transparent"}`,color:tab===t.id?"#fff":"#555",fontSize:12,fontWeight:700,cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.5px",transition:"all 0.15s",whiteSpace:"nowrap"}}>{t.label}</button>
             ))}
           </div>
-
-          {/* Right side: photo + hamburger */}
           <div style={{display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
             {photoUrl&&<img src={photoUrl} alt="" style={{width:30,height:30,borderRadius:"50%",objectFit:"cover",filter:"grayscale(100%)",border:"2px solid #333"}}/>}
             <button onClick={()=>setMenuOpen(!menuOpen)} style={{background:"none",border:"none",padding:"4px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -331,11 +623,9 @@ function Dashboard({user,profile,onEditProfile,onHome,photoUrl}){
         </div>
       </div>
 
-      {/* Dropdown Menu */}
       {menuOpen&&(
         <div style={{position:"fixed",top:56,left:0,right:0,bottom:0,zIndex:99}} onClick={()=>setMenuOpen(false)}>
           <div style={{position:"absolute",top:0,right:0,width:"100%",maxWidth:300,background:"#0d0d0d",border:"1px solid #1f1f1f",borderTop:"none",boxShadow:"0 20px 60px rgba(0,0,0,0.9)"}} onClick={e=>e.stopPropagation()}>
-            {/* Nav items */}
             <div style={{padding:"8px 0",borderBottom:"1px solid #1a1a1a"}}>
               {tabs.map(t=>(
                 <button key={t.id} onClick={()=>handleTabChange(t.id)} style={{display:"block",width:"100%",padding:"14px 20px",background:tab===t.id?"rgba(230,60,60,0.08)":"none",border:"none",borderLeft:`3px solid ${tab===t.id?"#e63c3c":"transparent"}`,color:tab===t.id?"#fff":"#888",fontSize:14,fontWeight:700,cursor:"pointer",textAlign:"left",textTransform:"uppercase",letterSpacing:"0.5px"}}>
@@ -343,20 +633,14 @@ function Dashboard({user,profile,onEditProfile,onHome,photoUrl}){
                 </button>
               ))}
             </div>
-            {/* Edit Profile + Home */}
             <div style={{padding:"8px 0"}}>
-              <button onClick={handleEditProfile} style={{display:"block",width:"100%",padding:"14px 20px",background:"none",border:"none",borderLeft:"3px solid transparent",color:"#888",fontSize:14,fontWeight:700,cursor:"pointer",textAlign:"left",textTransform:"uppercase",letterSpacing:"0.5px"}}>
-                ✏️ Edit Profile
-              </button>
-              <button onClick={handleHome} style={{display:"block",width:"100%",padding:"14px 20px",background:"none",border:"none",borderLeft:"3px solid transparent",color:"#888",fontSize:14,fontWeight:700,cursor:"pointer",textAlign:"left",textTransform:"uppercase",letterSpacing:"0.5px"}}>
-                🏠 Home
-              </button>
+              <button onClick={handleEditProfile} style={{display:"block",width:"100%",padding:"14px 20px",background:"none",border:"none",borderLeft:"3px solid transparent",color:"#888",fontSize:14,fontWeight:700,cursor:"pointer",textAlign:"left",textTransform:"uppercase",letterSpacing:"0.5px"}}>✏️ Edit Profile</button>
+              <button onClick={handleHome} style={{display:"block",width:"100%",padding:"14px 20px",background:"none",border:"none",borderLeft:"3px solid transparent",color:"#888",fontSize:14,fontWeight:700,cursor:"pointer",textAlign:"left",textTransform:"uppercase",letterSpacing:"0.5px"}}>🏠 Home</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Main Content */}
       <div style={{maxWidth:1100,margin:"0 auto",padding:"24px 16px"}}>
         {tab==="overview"&&(<div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:20}}>
@@ -368,7 +652,7 @@ function Dashboard({user,profile,onEditProfile,onHome,photoUrl}){
             <div style={{background:"#0d0d0d",borderRadius:10,padding:"16px",border:"1px solid #1a1a1a"}}><div style={{fontSize:11,color:"#e63c3c",fontWeight:700,textTransform:"uppercase",letterSpacing:"2px",marginBottom:12}}>Activities</div><p style={{fontSize:12,color:profile?.extracurriculars?"#aaa":"#444",margin:0,lineHeight:1.7}}>{profile?.extracurriculars||"No activities added yet."}</p></div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr",gap:10}}>
-            {[{id:"applications",label:"APPLICATIONS",sub:`${appliedSchools.length} schools · ${acceptedSchools.length} accepted`},{id:"school-awards",label:"SCHOOL AWARDS",sub:`${totalSchoolAwards} scholarships available`},{id:"independent",label:"INDEPENDENT",sub:`${INDEPENDENT_SCHOLARSHIPS.filter(s=>daysUntil(s.deadline)>=0).length} open scholarships`}].map(c=>(<button key={c.id} onClick={()=>setTab(c.id)} style={{background:"#0d0d0d",border:"1px solid #1a1a1a",borderRadius:10,padding:"18px",textAlign:"left",cursor:"pointer",transition:"border-color 0.15s",display:"flex",alignItems:"center",justifyContent:"space-between"}} onMouseEnter={e=>e.currentTarget.style.borderColor="#e63c3c"} onMouseLeave={e=>e.currentTarget.style.borderColor="#1a1a1a"}><div><div style={{fontSize:13,fontWeight:900,color:"#fff",marginBottom:4,textTransform:"uppercase",letterSpacing:"1px"}}>{c.label}</div><div style={{fontSize:12,color:"#555"}}>{c.sub}</div></div><div style={{fontSize:14,color:"#e63c3c",fontWeight:700}}>→</div></button>))}
+            {[{id:"applications",label:"APPLICATIONS",sub:`${appliedSchools.length} schools · ${acceptedSchools.length} accepted`},{id:"school-awards",label:"SCHOOL AWARDS",sub:`${totalSchoolAwards} scholarships available`},{id:"independent",label:"INDEPENDENT",sub:`${INDEPENDENT_SCHOLARSHIPS.filter(s=>daysUntil(s.deadline)>=0).length} open scholarships`},{id:"tasks",label:"TASKS & CALENDAR",sub:"Track deadlines and to-dos"}].map(c=>(<button key={c.id} onClick={()=>setTab(c.id)} style={{background:"#0d0d0d",border:"1px solid #1a1a1a",borderRadius:10,padding:"18px",textAlign:"left",cursor:"pointer",transition:"border-color 0.15s",display:"flex",alignItems:"center",justifyContent:"space-between"}} onMouseEnter={e=>e.currentTarget.style.borderColor="#e63c3c"} onMouseLeave={e=>e.currentTarget.style.borderColor="#1a1a1a"}><div><div style={{fontSize:13,fontWeight:900,color:"#fff",marginBottom:4,textTransform:"uppercase",letterSpacing:"1px"}}>{c.label}</div><div style={{fontSize:12,color:"#555"}}>{c.sub}</div></div><div style={{fontSize:14,color:"#e63c3c",fontWeight:700}}>→</div></button>))}
           </div>
         </div>)}
 
@@ -388,6 +672,16 @@ function Dashboard({user,profile,onEditProfile,onHome,photoUrl}){
           <div style={{marginBottom:12,padding:"10px 14px",background:"rgba(230,60,60,0.05)",borderRadius:8,border:"1px solid rgba(230,60,60,0.15)"}}><p style={{margin:0,fontSize:12,color:"#888"}}>🎯 <strong style={{color:"#e63c3c"}}>{indepFiltered.length} scholarships</strong> matched · ⭐ Strong Match = highest fit</p></div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...indepFiltered].sort((a,b)=>{const ap=daysUntil(a.deadline)<0,bp=daysUntil(b.deadline)<0;if(ap&&!bp)return 1;if(!ap&&bp)return -1;if(a.match==="high"&&b.match!=="high")return -1;if(b.match==="high"&&a.match!=="high")return 1;return new Date(a.deadline)-new Date(b.deadline);}).map((s,i)=><ScholarshipCard key={i} s={s}/>)}</div>
         </div>)}
+
+        {tab==="tasks"&&(
+          <div>
+            <div style={{marginBottom:16}}>
+              <h2 style={{margin:"0 0 4px",fontSize:16,fontWeight:900,color:"#fff",textTransform:"uppercase",letterSpacing:"-0.5px"}}>Tasks & Calendar</h2>
+              <p style={{margin:0,fontSize:12,color:"#555"}}>Track deadlines, to-dos, and scholarship action items.</p>
+            </div>
+            <TasksCalendar/>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -399,6 +693,7 @@ export default function App(){
   const[editing,setEditing]=useState(false);
   const[screen,setScreen]=useState("splash");
   const[photoUrl,setPhotoUrl]=useState(null);
+  const[initialTab,setInitialTab]=useState("overview");
 
   useEffect(()=>{
     const p=localStorage.getItem("scholartrack:profile");
@@ -412,8 +707,10 @@ export default function App(){
   const saveProfile=useCallback((data)=>{setProfile(data);setEditing(false);localStorage.setItem("scholartrack:profile",JSON.stringify(data));}, []);
   const savePhoto=useCallback((url)=>{setPhotoUrl(url);localStorage.setItem("scholartrack:photo",url);}, []);
 
+  const handleNavigate=(tabId)=>{setInitialTab(tabId);setScreen("dashboard");};
+
   if(!user)return<LoginPage onLogin={(u)=>{setUser(u);setScreen("splash");localStorage.setItem("scholartrack:user",JSON.stringify(u));}}/>;
   if(editing||!profile)return(<div style={{minHeight:"100vh",background:"#000",padding:"24px 16px"}}><div style={{maxWidth:860,margin:"0 auto"}}><ProfileForm profile={profile} onSave={saveProfile} onCancel={profile?()=>setEditing(false):null} photoUrl={photoUrl} onPhotoChange={savePhoto}/></div></div>);
-  if(screen==="splash")return<SplashScreen profile={profile} photoUrl={photoUrl} onNavigate={()=>setScreen("dashboard")}/>;
-  return<Dashboard user={user} profile={profile} onEditProfile={()=>setEditing(true)} onHome={()=>setScreen("splash")} photoUrl={photoUrl}/>;
+  if(screen==="splash")return<SplashScreen profile={profile} photoUrl={photoUrl} onNavigate={handleNavigate}/>;
+  return<Dashboard user={user} profile={profile} onEditProfile={()=>setEditing(true)} onHome={()=>setScreen("splash")} photoUrl={photoUrl} initialTab={initialTab}/>;
 }
