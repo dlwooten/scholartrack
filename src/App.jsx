@@ -149,15 +149,15 @@ function TasksCalendar(){
   const[filterCat,setFilterCat]=useState("All");
   const[filterDone,setFilterDone]=useState(false);
   const[calMonth,setCalMonth]=useState(()=>new Date(TODAY.getFullYear(),TODAY.getMonth(),1));
-  const[form,setForm]=useState({title:"",category:"Application",priority:"medium",deadline:"",notes:"",done:false});
+  const[form,setForm]=useState({title:"",category:"Application",priority:"medium",deadline:"",notes:"",done:false,reminders:[]});
   const[formError,setFormError]=useState("");
 
   useEffect(()=>{try{localStorage.setItem(storageKey,JSON.stringify(tasks));}catch{};},[tasks]);
 
   const saveTasks=(t)=>setTasks(t);
 
-  const openNew=()=>{setForm({title:"",category:"Application",priority:"medium",deadline:"",notes:"",done:false});setEditTask(null);setFormError("");setShowForm(true);};
-  const openEdit=(task)=>{setForm({...task});setEditTask(task.id);setFormError("");setShowForm(true);};
+  const openNew=()=>{setForm({title:"",category:"Application",priority:"medium",deadline:"",notes:"",done:false,reminders:[]});setEditTask(null);setFormError("");setShowForm(true);};
+  const openEdit=(task)=>{setForm({...task,reminders:task.reminders||[]});setEditTask(task.id);setFormError("");setShowForm(true);};
   const closeForm=()=>{setShowForm(false);setEditTask(null);setFormError("");};
 
   const submitForm=()=>{
@@ -306,6 +306,38 @@ function TasksCalendar(){
               <label style={lbl}>Notes</label>
               <textarea style={{...inp,height:60,resize:"vertical",fontFamily:"inherit"}} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Optional details…" onFocus={e=>e.target.style.borderColor="#e63c3c"} onBlur={e=>e.target.style.borderColor="#2a2a2a"}/>
             </div>
+            <div style={{background:"#111",borderRadius:8,border:"1px solid #1f1f1f",padding:"14px 16px"}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#e63c3c",textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:4}}>🔔 Deadline Reminders</div>
+              <div style={{fontSize:11,color:"#555",marginBottom:12}}>{form.deadline?"Select when to receive notifications:":"Set a deadline above to enable reminders."}</div>
+              <div style={{display:"flex",flexDirection:"column",gap:10,opacity:form.deadline?1:0.35,pointerEvents:form.deadline?"auto":"none"}}>
+                {[
+                  {key:"1w",label:"1 week before",desc:"7 days"},
+                  {key:"3d",label:"3 days before",desc:"72 hours"},
+                  {key:"2d",label:"2 days before",desc:"48 hours"},
+                  {key:"24h",label:"24 hours before",desc:"1 day"},
+                  {key:"3h",label:"3 hours before",desc:"Day-of reminder"},
+                ].map(r=>{
+                  const checked=(form.reminders||[]).includes(r.key);
+                  return(
+                    <div key={r.key} onClick={()=>{if(!form.deadline)return;const cur=form.reminders||[];setForm(f=>({...f,reminders:checked?cur.filter(x=>x!==r.key):[...cur,r.key]}));}} style={{display:"flex",alignItems:"center",gap:10,cursor:form.deadline?"pointer":"not-allowed",padding:"8px 10px",borderRadius:7,border:`1px solid ${checked?"rgba(230,60,60,0.3)":"#2a2a2a"}`,background:checked?"rgba(230,60,60,0.07)":"transparent",transition:"all 0.15s"}}>
+                      <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${checked?"#e63c3c":"#444"}`,background:checked?"#e63c3c":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.15s"}}>
+                        {checked&&<span style={{color:"#fff",fontSize:10,fontWeight:900,lineHeight:1}}>✓</span>}
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:12,fontWeight:700,color:checked?"#fff":"#888"}}>{r.label}</div>
+                        <div style={{fontSize:10,color:"#555"}}>{r.desc}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {(form.reminders||[]).length>0&&form.deadline&&(
+                <div style={{marginTop:10,padding:"8px 10px",borderRadius:6,background:"rgba(74,222,128,0.07)",border:"1px solid rgba(74,222,128,0.2)"}}>
+                  <div style={{fontSize:11,color:"#4ade80",fontWeight:700}}>{(form.reminders||[]).length} reminder{(form.reminders||[]).length>1?"s":""} set ✓</div>
+                  <div style={{fontSize:10,color:"#555",marginTop:2}}>Notifications will appear as browser alerts at the scheduled times.</div>
+                </div>
+              )}
+            </div>
           </div>
           <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:14}}>
             <button onClick={closeForm} style={{padding:"9px 20px",borderRadius:7,border:"1px solid #2a2a2a",background:"transparent",color:"#888",fontSize:12,cursor:"pointer"}}>Cancel</button>
@@ -340,6 +372,7 @@ function TasksCalendar(){
                         <span style={{fontSize:13,fontWeight:700,color:task.done?"#555":"#fff",textDecoration:task.done?"line-through":"none"}}>{task.title}</span>
                         <span style={{fontSize:10,padding:"2px 7px",borderRadius:20,background:pri.bg,color:pri.color,border:`1px solid ${pri.border}`,fontWeight:700}}>{pri.label}</span>
                         <span style={{fontSize:10,padding:"2px 7px",borderRadius:20,background:"#1a1a1a",color:"#666",border:"1px solid #2a2a2a"}}>{task.category}</span>
+                        {(task.reminders||[]).length>0&&<span style={{fontSize:10,padding:"2px 7px",borderRadius:20,background:"rgba(251,191,36,0.1)",color:"#fbbf24",border:"1px solid rgba(251,191,36,0.2)"}}>🔔 {(task.reminders||[]).length}</span>}
                       </div>
                       {task.notes&&<p style={{fontSize:12,color:"#666",margin:"2px 0 0",lineHeight:1.5}}>{task.notes}</p>}
                     </div>
@@ -426,7 +459,7 @@ function TasksCalendar(){
 function SplashScreen({profile,onNavigate,photoUrl}){
   const navItems=[{id:"overview",label:"Overview"},{id:"applications",label:"Applications"},{id:"school-awards",label:"Awards"},{id:"independent",label:"Independent Scholies"},{id:"tasks",label:"Tasks & Calendar"}];
   const firstName=profile?.firstName||"Jacob";
-  return(<div style={{position:"relative",width:"100%",height:"100vh",overflow:"hidden",background:"#000",fontFamily:"'Arial Black','Arial Bold',sans-serif"}}>
+  return(<div style={{position:"relative",width:"100%",height:"100vh",overflow:"hidden",background:"#000",fontFamily:"'Arial Black','Arial Bold',sans-serif",maxWidth:"100vw"}}>
     {photoUrl?<img src={photoUrl} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",filter:"grayscale(100%) brightness(0.45)",zIndex:0}}/>:<div style={{position:"absolute",inset:0,background:"linear-gradient(160deg,#111 0%,#222 50%,#0a0a0a 100%)",zIndex:0}}/>}
     <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.2) 60%,rgba(0,0,0,0.1) 100%)",zIndex:1}}/>
     <div style={{position:"relative",zIndex:2,height:"100%",display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 0 48px 24px"}}>
@@ -603,19 +636,23 @@ function Dashboard({user,profile,onEditProfile,onHome,photoUrl,initialTab}){
   const handleHome=()=>{setMenuOpen(false);onHome();};
 
   return(
-    <div style={{minHeight:"100vh",background:"#000",color:"#fff",fontFamily:"Arial,sans-serif"}}>
-      <div style={{background:"#000",borderBottom:"1px solid #1a1a1a",padding:"0 16px",position:"sticky",top:0,zIndex:100}}>
-        <div style={{maxWidth:1100,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:56}}>
-          <button onClick={handleHome} style={{background:"none",border:"none",color:"#fff",fontSize:16,fontWeight:900,fontFamily:"'Arial Black',sans-serif",cursor:"pointer",padding:0,letterSpacing:"-1px",textTransform:"uppercase",flexShrink:0}}>
+    <div style={{minHeight:"100vh",background:"#000",color:"#fff",fontFamily:"Arial,sans-serif",overflowX:"hidden"}}>
+      <style>{`
+        @media(max-width:600px){.st-desknav{display:none!important;}}
+        @media(min-width:601px){.st-desknav{display:flex!important;}}
+      `}</style>
+      <div style={{background:"#000",borderBottom:"1px solid #1a1a1a",padding:"0 16px",position:"sticky",top:0,zIndex:100,width:"100%",boxSizing:"border-box"}}>
+        <div style={{maxWidth:600,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:56}}>
+          <button onClick={handleHome} style={{background:"none",border:"none",color:"#fff",fontSize:15,fontWeight:900,fontFamily:"'Arial Black',sans-serif",cursor:"pointer",padding:0,letterSpacing:"-0.5px",textTransform:"uppercase",flexShrink:0,whiteSpace:"nowrap"}}>
             {fn?`${fn.toUpperCase()}'S `:<span/>}<span style={{color:"#e63c3c"}}>ST</span>
           </button>
-          <div style={{display:"flex",gap:0,flex:1,marginLeft:24,overflow:"hidden"}}>
+          <div className="st-desknav" style={{gap:0,flex:1,marginLeft:16,overflow:"hidden",display:"none"}}>
             {tabs.map(t=>(
-              <button key={t.id} onClick={()=>handleTabChange(t.id)} style={{padding:"18px 16px",background:"none",border:"none",borderBottom:`2px solid ${tab===t.id?"#e63c3c":"transparent"}`,color:tab===t.id?"#fff":"#555",fontSize:12,fontWeight:700,cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.5px",transition:"all 0.15s",whiteSpace:"nowrap"}}>{t.label}</button>
+              <button key={t.id} onClick={()=>handleTabChange(t.id)} style={{padding:"18px 10px",background:"none",border:"none",borderBottom:`2px solid ${tab===t.id?"#e63c3c":"transparent"}`,color:tab===t.id?"#fff":"#555",fontSize:11,fontWeight:700,cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.3px",transition:"all 0.15s",whiteSpace:"nowrap"}}>{t.label}</button>
             ))}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
-            {photoUrl&&<img src={photoUrl} alt="" style={{width:30,height:30,borderRadius:"50%",objectFit:"cover",filter:"grayscale(100%)",border:"2px solid #333"}}/>}
+            {photoUrl&&<img src={photoUrl} alt="" style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",filter:"grayscale(100%)",border:"2px solid #333"}}/>}
             <button onClick={()=>setMenuOpen(!menuOpen)} style={{background:"none",border:"none",padding:"4px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
               <HamburgerIcon open={menuOpen}/>
             </button>
@@ -641,7 +678,7 @@ function Dashboard({user,profile,onEditProfile,onHome,photoUrl,initialTab}){
         </div>
       )}
 
-      <div style={{maxWidth:1100,margin:"0 auto",padding:"24px 16px"}}>
+      <div style={{maxWidth:600,margin:"0 auto",padding:"20px 16px",boxSizing:"border-box"}}>
         {tab==="overview"&&(<div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:20}}>
             {[{label:"Applied",value:appliedSchools.length,color:"#fff"},{label:"Accepted",value:acceptedSchools.length,color:"#4ade80"},{label:"School Awards",value:totalSchoolAwards,color:"#e63c3c"},{label:"Open Scholarships",value:INDEPENDENT_SCHOLARSHIPS.filter(s=>daysUntil(s.deadline)>=0).length,color:"#fbbf24"}].map(s=>(<div key={s.label} style={{background:"#0d0d0d",border:"1px solid #1a1a1a",borderRadius:10,padding:"16px 14px"}}><div style={{fontSize:32,fontWeight:900,color:s.color,lineHeight:1,fontFamily:"'Arial Black',sans-serif"}}>{s.value}</div><div style={{fontSize:10,color:"#555",marginTop:4,textTransform:"uppercase",letterSpacing:"1px"}}>{s.label}</div></div>))}
@@ -710,7 +747,7 @@ export default function App(){
   const handleNavigate=(tabId)=>{setInitialTab(tabId);setScreen("dashboard");};
 
   if(!user)return<LoginPage onLogin={(u)=>{setUser(u);setScreen("splash");localStorage.setItem("scholartrack:user",JSON.stringify(u));}}/>;
-  if(editing||!profile)return(<div style={{minHeight:"100vh",background:"#000",padding:"24px 16px"}}><div style={{maxWidth:860,margin:"0 auto"}}><ProfileForm profile={profile} onSave={saveProfile} onCancel={profile?()=>setEditing(false):null} photoUrl={photoUrl} onPhotoChange={savePhoto}/></div></div>);
+  if(editing||!profile)return(<div style={{minHeight:"100vh",background:"#000",padding:"24px 16px",overflowX:"hidden"}}><div style={{maxWidth:600,margin:"0 auto"}}><ProfileForm profile={profile} onSave={saveProfile} onCancel={profile?()=>setEditing(false):null} photoUrl={photoUrl} onPhotoChange={savePhoto}/></div></div>);
   if(screen==="splash")return<SplashScreen profile={profile} photoUrl={photoUrl} onNavigate={handleNavigate}/>;
   return<Dashboard user={user} profile={profile} onEditProfile={()=>setEditing(true)} onHome={()=>setScreen("splash")} photoUrl={photoUrl} initialTab={initialTab}/>;
 }
